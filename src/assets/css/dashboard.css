@@ -3,7 +3,11 @@ f.modal-title {
   color: #fff;
 
 }
-
+.vetan-mang-subject{
+  font-size: 14px;
+  font-weight: 500;
+  color: #022147;
+}
 .accordin-header {
   background-color: #194e8b !important;
   color: #fff !important;
