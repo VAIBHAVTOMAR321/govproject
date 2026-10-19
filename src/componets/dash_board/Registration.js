@@ -2649,16 +2649,16 @@ const Registration = () => {
 
   return (
     <div>
-      <Container fluid className="p-4 ">
+      <Container fluid className="pt-2 ">
         <Row>
           <Col lg={12} md={12} sm={12}>
             <DashBoardHeader />
           </Col>
         </Row>
 
-        <Row className="left-top">
+        <Row className="">
           <Col lg={12} md={12} sm={10}>
-            <Container fluid className="dashboard-body-main bg-home">
+            <Container fluid className="dashboard-body-main bg-home p-3">
               <h1 className="page-title">{translations.pageTitle}</h1>
 
               {/* Progress Bar Section - Displayed at top during upload */}
@@ -4108,126 +4108,128 @@ const Registration = () => {
                   </Alert>
                 ) : (
                   <>
-                    <Table striped bordered hover className="registration-form">
-                      <thead className="table-light">
-                        <tr>
-                          <th>
-                            <Form.Check
-                              type="checkbox"
-                              onChange={handleSelectAll}
-                              checked={
-                                filteredItems
-                                  .slice(
+                    <div className="registration-table-scroll">
+                      <Table striped bordered hover className="registration-form">
+                        <thead className="table-light">
+                          <tr>
+                            <th>
+                              <Form.Check
+                                type="checkbox"
+                                onChange={handleSelectAll}
+                                checked={
+                                  filteredItems
+                                    .slice(
+                                      (currentPage - 1) * itemsPerPage,
+                                      currentPage * itemsPerPage,
+                                    )
+                                    .every((item) =>
+                                      selectedItems.includes(item.bill_id),
+                                    ) &&
+                                  filteredItems.slice(
                                     (currentPage - 1) * itemsPerPage,
                                     currentPage * itemsPerPage,
-                                  )
-                                  .every((item) =>
-                                    selectedItems.includes(item.bill_id),
-                                  ) &&
-                                filteredItems.slice(
-                                  (currentPage - 1) * itemsPerPage,
-                                  currentPage * itemsPerPage,
-                                ).length > 0
-                              }
-                            />
-                          </th>
-                          <th>क्र.सं.</th>
-                          {selectedColumns.map((col) => (
-                            <th key={col} style={{ whiteSpace: "pre-line" }}>
-                              {billingTableColumnMapping[col]?.header}
+                                  ).length > 0
+                                }
+                              />
                             </th>
-                          ))}
-                          <th>कार्रवाई</th>
-                        </tr>
-                      </thead>
-                      <tbody className="tbl-body">
-                        {filteredItems
-                          .slice(
-                            (currentPage - 1) * itemsPerPage,
-                            currentPage * itemsPerPage,
-                          )
-                          .map((item, index) => (
-                            <tr key={item.id || index}>
-                              <td>
-                                <Form.Check
-                                  type="checkbox"
-                                  checked={selectedItems.includes(item.bill_id)}
-                                  onChange={() =>
-                                    handleCheckboxChange(item.bill_id)
-                                  }
-                                />
-                              </td>
-                              <td>
-                                {(currentPage - 1) * itemsPerPage + index + 1}
-                              </td>
-                              {selectedColumns.map((col) => (
-                                <td key={col} style={{ whiteSpace: "pre-line" }}>
-                                  {renderTableCell(item, col)}
+                            <th>क्र.सं.</th>
+                            {selectedColumns.map((col) => (
+                              <th key={col} style={{ whiteSpace: "pre-line" }}>
+                                {billingTableColumnMapping[col]?.header}
+                              </th>
+                            ))}
+                            <th>कार्रवाई</th>
+                          </tr>
+                        </thead>
+                        <tbody className="tbl-body">
+                          {filteredItems
+                            .slice(
+                              (currentPage - 1) * itemsPerPage,
+                              currentPage * itemsPerPage,
+                            )
+                            .map((item, index) => (
+                              <tr key={item.id || index}>
+                                <td>
+                                  <Form.Check
+                                    type="checkbox"
+                                    checked={selectedItems.includes(item.bill_id)}
+                                    onChange={() =>
+                                      handleCheckboxChange(item.bill_id)
+                                    }
+                                  />
                                 </td>
-                              ))}
-                              <td>
-                                {editingRowId === item.id ? (
-                                  <div className="d-flex gap-1">
-                                    <Button
-                                      variant="success"
-                                      size="sm"
-                                      onClick={() => handleSave(item)}
-                                    >
-                                      सहेजें
-                                    </Button>
-                                    <Button
-                                      variant="secondary"
-                                      size="sm"
-                                      onClick={handleCancel}
-                                    >
-                                      रद्द करें
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <div className="d-flex gap-1">
-                                    <OverlayTrigger
-                                      placement="top"
-                                      overlay={<Tooltip>संपादित करें</Tooltip>}
-                                    >
+                                <td>
+                                  {(currentPage - 1) * itemsPerPage + index + 1}
+                                </td>
+                                {selectedColumns.map((col) => (
+                                  <td key={col} style={{ whiteSpace: "pre-line" }}>
+                                    {renderTableCell(item, col)}
+                                  </td>
+                                ))}
+                                <td>
+                                  {editingRowId === item.id ? (
+                                    <div className="d-flex gap-1">
                                       <Button
-                                        variant="outline-primary"
+                                        variant="success"
                                         size="sm"
-                                        onClick={() => handleEdit(item)}
+                                        onClick={() => handleSave(item)}
                                       >
-                                        <RiEyeLine />
+                                        सहेजें
                                       </Button>
-                                    </OverlayTrigger>
-                                    <OverlayTrigger
-                                      placement="top"
-                                      overlay={<Tooltip>हटाएं</Tooltip>}
-                                    >
                                       <Button
-                                        variant="outline-danger"
+                                        variant="secondary"
                                         size="sm"
-                                        onClick={() => handleDelete(item)}
+                                        onClick={handleCancel}
                                       >
-                                        <RiDeleteBinLine />
+                                        रद्द करें
                                       </Button>
-                                    </OverlayTrigger>
-                                  </div>
-                                )}
+                                    </div>
+                                  ) : (
+                                    <div className="d-flex gap-1">
+                                      <OverlayTrigger
+                                        placement="top"
+                                        overlay={<Tooltip>संपादित करें</Tooltip>}
+                                      >
+                                        <Button
+                                          variant="outline-primary"
+                                          size="sm"
+                                          onClick={() => handleEdit(item)}
+                                        >
+                                          <RiEyeLine />
+                                        </Button>
+                                      </OverlayTrigger>
+                                      <OverlayTrigger
+                                        placement="top"
+                                        overlay={<Tooltip>हटाएं</Tooltip>}
+                                      >
+                                        <Button
+                                          variant="outline-danger"
+                                          size="sm"
+                                          onClick={() => handleDelete(item)}
+                                        >
+                                          <RiDeleteBinLine />
+                                        </Button>
+                                      </OverlayTrigger>
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                        <tfoot>
+                          <tr>
+                            <td></td>
+                            <td><strong>कुल</strong></td>
+                            {selectedColumns.map((col) => (
+                              <td key={col}>
+                                <strong>{getColumnTotal(filteredItems, col)}</strong>
                               </td>
-                            </tr>
-                          ))}
-                      </tbody>
-                      <tfoot>
-                        <tr>
-                          <td></td>
-                          <td><strong>कुल</strong></td>
-                          {selectedColumns.map((col) => (
-                            <td key={col}>
-                              <strong>{getColumnTotal(filteredItems, col)}</strong>
-                            </td>
-                          ))}
-                          <td></td>
-                        </tr>
-                      </tfoot>
-                    </Table>
+                            ))}
+                            <td></td>
+                          </tr>
+                        </tfoot>
+                      </Table>
+                    </div>
 
                     {/* Pagination controls */}
                     {filteredItems.length > itemsPerPage && (

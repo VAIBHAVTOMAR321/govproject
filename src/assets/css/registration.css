@@ -140,6 +140,26 @@
     justify-content: end;
 }
 
+.registration-table-scroll {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 767.98px) {
+  .registration-table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .registration-table-scroll > table {
+    width: max-content;
+    min-width: 1000px;
+    margin-bottom: 0;
+  }
+}
+
 /* --- 6. Summary Cards and Modal Enhancements --- */
 .summary-cards {
   padding: 1.5rem 0;
