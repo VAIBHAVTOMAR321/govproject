@@ -1,0 +1,286 @@
+/* Responsive styles scoped to the All Bills screen */
+.all-bills-dashboard,
+.all-bills-page-container,
+.all-bills-main-column,
+.all-bills-content {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.all-bills-page-container {
+  width: 100%;
+  padding: 0.75rem clamp(0.5rem, 1.5vw, 1.25rem) !important;
+  overflow-x: clip;
+}
+
+.all-bills-main-column {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.all-bills-content {
+  width: 100%;
+  padding: clamp(0.75rem, 1.5vw, 1.25rem) !important;
+  margin: 0;
+}
+
+.all-bills-content .page-title {
+  overflow-wrap: anywhere;
+  margin-bottom: 1rem;
+}
+
+.all-bills-content .filter-section,
+.all-bills-content .reports-container,
+.all-bills-content .table-wrapper {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.all-bills-content .filter-section {
+  padding: clamp(0.65rem, 1.4vw, 1rem) !important;
+}
+
+.all-bills-content .table-wrapper,
+.all-bills-content .table-responsive {
+  overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+.all-bills-content table {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.all-bills-content th,
+.all-bills-content td {
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.all-bills-content .table-responsive > table {
+  min-width: 760px;
+}
+
+.all-bills-content .all-bills-actions-heading {
+  min-width: 250px;
+  text-align: center;
+}
+
+.all-bills-content .all-bills-select-column {
+  width: 40px;
+  min-width: 40px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.all-bills-content .all-bills-checkbox-cell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.all-bills-content .all-bills-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #0d6efd;
+}
+
+.all-bills-content .all-bills-progress-bar {
+  height: 6px;
+}
+
+.all-bills-content .all-bills-expanded-cell {
+  border-bottom: none;
+}
+
+.all-bills-content .all-bills-expanded-cell.is-expanded {
+  border-bottom: 1px solid #dee2e6;
+}
+
+.all-bills-content .all-bills-page-name-heading {
+  width: 70%;
+}
+
+.all-bills-content .all-bills-page-number-heading {
+  width: 30%;
+  white-space: nowrap;
+}
+
+.all-bills-content .all-bills-page-name-cell {
+  word-break: break-word;
+  white-space: normal;
+}
+
+.all-bills-content .all-bills-page-number-cell {
+  white-space: nowrap;
+}
+
+.all-bills-content .filter-dropdown,
+.all-bills-content .all-bills-select__control {
+  width: 100%;
+  min-width: 0;
+}
+
+.all-bills-content .all-bills-select__control {
+  min-height: 38px;
+  border-color: #d1d5db;
+  box-shadow: none;
+  font-size: 0.875rem;
+}
+
+.all-bills-content .all-bills-select__control:hover {
+  border-color: #3b82f6;
+}
+
+.all-bills-content .all-bills-select__control--is-focused {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6;
+}
+
+.all-bills-select__menu,
+.all-bills-select__menu-portal {
+  z-index: 9999 !important;
+  font-size: 0.875rem;
+}
+
+.all-bills-select__menu-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.all-bills-select__placeholder {
+  color: #6b7280;
+}
+
+.all-bills-content .table-info > .row {
+  row-gap: 0.5rem;
+}
+
+.all-bills-content .table-info .btn {
+  max-width: 100%;
+  white-space: normal;
+}
+
+.all-bills-content .pagination {
+  flex-wrap: wrap;
+  gap: 0.2rem;
+}
+
+@media (max-width: 991.98px) {
+  .all-bills-page-container {
+    padding: 0.5rem !important;
+  }
+
+  .all-bills-content {
+    padding: 0.75rem !important;
+  }
+
+  .all-bills-content .table-info .row > [class*="col-"] {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .all-bills-page-container {
+    /* padding: 0.35rem !important; */
+  }
+
+  .all-bills-content {
+    padding: 0.6rem !important;
+    border-radius: 0.5rem;
+  }
+
+  .all-bills-content .page-title {
+    font-size: 1.25rem;
+    line-height: 1.35;
+  }
+
+  .all-bills-content .filter-section {
+    margin-bottom: 0.85rem !important;
+  }
+
+  .all-bills-content .filter-section .d-flex.justify-content-between {
+    align-items: flex-start !important;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .all-bills-content .table-info .row {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .all-bills-content .table-info .row > [class*="col-"] {
+    width: 100%;
+    max-width: 100%;
+    justify-content: flex-start !important;
+  }
+
+  .all-bills-content .table-info .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .all-bills-content .table-info .d-flex {
+    flex-wrap: wrap;
+  }
+
+  .all-bills-content .table-responsive > table {
+    min-width: 760px;
+  }
+
+  .all-bills-content .modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+  }
+
+  .all-bills-content .modal-body {
+    overflow-x: auto;
+  }
+
+  .all-bills-content .modal-footer {
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .all-bills-content .modal-footer .btn {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .all-bills-content {
+    padding: 0.45rem !important;
+  }
+
+  .all-bills-content .small-fonts {
+    font-size: 0.75rem;
+  }
+
+  .all-bills-content .btn {
+    max-width: 100%;
+    white-space: normal;
+  }
+}
+.all-bills-page-container > .left-top {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+@media (max-width: 991.98px) {
+  .all-bills-page-container {
+    padding-top: 0 !important;
+  }
+
+  .all-bills-page-container > .row:first-child {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .all-bills-content {
+    margin-top: 0 !important;
+  }
+}

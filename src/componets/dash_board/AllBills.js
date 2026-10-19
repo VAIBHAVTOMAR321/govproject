@@ -23,6 +23,7 @@ import html2pdf from "html2pdf.js";
 import { FaDownload, FaEye } from "react-icons/fa";
 import "../../assets/css/dashboard.css";
 import "../../assets/css/table.css";
+import "../../assets/css/allbills.css";
 import DashBoardHeader from "./DashBoardHeader";
 import LeftNav from "./LeftNav";
 import Footer from "../footer/Footer";
@@ -39,35 +40,6 @@ const UPDATE_REPORT_STATUS_URL =
 const UPDATE_BILLING_REPORT_URL =
   "https://mahadevaaya.com/govbillingsystem/backend/api/billing-report/update/";
 const BASE_URL = "https://mahadevaaya.com/govbillingsystem/backend";
-
-// Custom styles for react-select components
-const customSelectStyles = {
-  control: (baseStyles, state) => ({
-    ...baseStyles,
-    borderColor: state.isFocused ? "#3b82f6" : "#d1d5db",
-    boxShadow: state.isFocused ? "0 0 0 1px #3b82f6" : "none",
-    "&:hover": { borderColor: "#3b82f6" },
-    minHeight: "32px",
-    fontSize: "14px",
-  }),
-  menu: (baseStyles) => ({
-    ...baseStyles,
-    zIndex: 9999,
-    position: "absolute",
-    fontSize: "14px",
-  }),
-  menuList: (baseStyles) => ({
-    ...baseStyles,
-    maxHeight: "200px",
-    overflowY: "auto",
-    fontSize: "14px",
-  }),
-  placeholder: (baseStyles) => ({
-    ...baseStyles,
-    color: "#6b7280",
-    fontSize: "14px",
-  }),
-};
 
 // Hindi translations
 const translations = {
@@ -1108,7 +1080,7 @@ const AllBills = () => {
 
   if (loading) {
     return (
-      <div className="dashboard-container">
+      <div className="dashboard-container all-bills-dashboard">
         <LeftNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isMobile={isMobile} isTablet={isTablet} />
         <div className="main-content d-flex justify-content-center align-items-center">
           <Spinner animation="border" />
@@ -1119,7 +1091,7 @@ const AllBills = () => {
 
   if (error) {
     return (
-      <div className="dashboard-container">
+      <div className="dashboard-container all-bills-dashboard">
         <LeftNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isMobile={isMobile} isTablet={isTablet} />
         <div className="main-content">
           <Container fluid className="dashboard-body">
@@ -1133,7 +1105,7 @@ const AllBills = () => {
   return (
     <>
       <div>
-        <Container fluid className="p-4">
+        <Container fluid className="all-bills-page-container">
           <Row>
             <Col lg={12} md={12} sm={12}>
               <DashBoardHeader />
@@ -1141,8 +1113,8 @@ const AllBills = () => {
           </Row>
 
           <Row className="left-top">
-            <Col lg={12} md={12} sm={10}>
-              <Container fluid className="dashboard-body-main bg-home">
+            <Col lg={12} md={12} sm={12} className="all-bills-main-column">
+              <Container fluid className="dashboard-body-main bg-home all-bills-content">
                 <h1 className="page-title small-fonts">{translations.allBills}</h1>
 
                 {downloadSuccess && (
@@ -1210,7 +1182,7 @@ const AllBills = () => {
                           isMulti
                           isClearable
                           placeholder={translations.allCenters}
-                          styles={customSelectStyles}
+                          classNamePrefix="all-bills-select"
                           className="compact-input small-fonts filter-dropdown"
                           menuPortalTarget={document.body}
                           menuPosition="fixed"
@@ -1228,7 +1200,7 @@ const AllBills = () => {
                           isMulti
                           isClearable
                           placeholder="बिल संख्या"
-                          styles={customSelectStyles}
+                          classNamePrefix="all-bills-select"
                           className="compact-input small-fonts filter-dropdown"
                           menuPortalTarget={document.body}
                           menuPosition="fixed"
@@ -1246,7 +1218,7 @@ const AllBills = () => {
                           isMulti
                           isClearable
                           placeholder="स्थिति"
-                          styles={customSelectStyles}
+                          classNamePrefix="all-bills-select"
                           className="compact-input small-fonts filter-dropdown"
                           menuPortalTarget={document.body}
                           menuPosition="fixed"
@@ -1374,7 +1346,7 @@ const AllBills = () => {
                                           : 0
                                       }
                                       variant={downloadPhase === "creatingZip" ? "warning" : "primary"}
-                                      style={{ height: "6px" }}
+                                      className="all-bills-progress-bar"
                                       animated
                                     />
                                     <small className="text-muted small-fonts mt-1 d-block">
@@ -1392,14 +1364,14 @@ const AllBills = () => {
                               <table className="table table-bordered table-hover table-striped small-fonts">
                                 <thead className="table-light">
                                   <tr>
-                                    <th style={{ width: "40px", textAlign: "center", verticalAlign: "middle" }}>
+                                    <th className="all-bills-select-column">
                                       <input
                                         type="checkbox"
                                         ref={selectAllCheckboxRef}
                                         checked={allCurrentPageSelected}
                                         onChange={toggleSelectAll}
                                         title={allCurrentPageSelected ? translations.clearAllFilters : translations.selectAllOnPage}
-                                        style={{ cursor: "pointer", width: "16px", height: "16px" }}
+                                        className="all-bills-checkbox"
                                       />
                                     </th>
                                     <th>{translations.sno}</th>
@@ -1409,7 +1381,7 @@ const AllBills = () => {
                                     <th>{translations.status}</th>
                                     <th>{translations.totalItems}</th>
                                     <th>{translations.buyAmount}</th>
-                                    <th style={{ minWidth: "250px", textAlign: "center" }}>
+                                    <th className="all-bills-actions-heading">
                                       {translations.details} / {translations.download}
                                     </th>
                                   </tr>
@@ -1423,12 +1395,12 @@ const AllBills = () => {
                                     return (
                                       <React.Fragment key={item.id}>
                                         <tr className={isSelected ? "table-primary" : ""}>
-                                          <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                                          <td className="all-bills-checkbox-cell">
                                             <input
                                               type="checkbox"
                                               checked={isSelected}
                                               onChange={() => toggleSelectBill(item.id)}
-                                              style={{ cursor: "pointer", width: "16px", height: "16px" }}
+                                              className="all-bills-checkbox"
                                             />
                                           </td>
                                           <td>
@@ -1519,7 +1491,7 @@ const AllBills = () => {
                                         </tr>
 
                                         <tr>
-                                          <td colSpan={9} className="p-0" style={{ borderBottom: isExpanded ? "1px solid #dee2e6" : "none" }}>
+                                          <td colSpan={9} className="p-0" className={isExpanded ? "all-bills-expanded-cell is-expanded" : "all-bills-expanded-cell"}>
                                             <Collapse in={isExpanded}>
                                               <div className="p-3 bg-light">
                                                 <Row className="mb-2 align-items-center">
@@ -1757,10 +1729,10 @@ const AllBills = () => {
             >
               <thead>
                 <tr>
-                  <th style={{ width: "70%" }}>{translations.subniveshName}</th>
+                  <th className="all-bills-page-name-heading">{translations.subniveshName}</th>
                   <th
                     className="text-center"
-                    style={{ width: "30%", whiteSpace: "nowrap" }}
+                    className="all-bills-page-number-heading"
                   >
                     {translations.pageNo}
                   </th>
@@ -1769,12 +1741,12 @@ const AllBills = () => {
               <tbody>
                 {currentPageData.map((entry, index) => (
                   <tr key={index}>
-                    <td style={{ wordBreak: "break-word", whiteSpace: "normal" }}>
+                    <td className="all-bills-page-name-cell">
                       {entry.names.join(", ")}
                     </td>
                     <td
                       className="text-center page-number-cell"
-                      style={{ whiteSpace: "nowrap" }}
+                      className="all-bills-page-number-cell"
                     >
                       {entry.pageNo}
                     </td>
