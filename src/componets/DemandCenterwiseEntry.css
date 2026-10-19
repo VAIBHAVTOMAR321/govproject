@@ -613,12 +613,24 @@
     min-width: calc(50% - 5px);
   }
 
+  .dynamic-report-filter-wrap {
+    position: relative;
+    min-width: 0;
+  }
+
+  /* Keep options attached to their filter button, like a normal dropdown. */
   .dynamic-report-filter-menu {
-    position: fixed;
-    left: 8px;
-    right: 8px;
-    width: auto;
-    max-height: 55vh;
+    position: absolute;
+    top: calc(100% + 4px);
+    bottom: auto;
+    left: 0;
+    right: auto;
+    width: min(280px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+    max-height: 45vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    z-index: 12000;
   }
   .dynamic-report-view-row {
     flex-wrap: wrap;
@@ -682,4 +694,359 @@
 
 .common-center-tab-status strong {
   color: #194e8b;
+}
+
+
+/* ==========================================================================
+   Responsive fixes and styles moved out of JSX.
+   Scoped to DemandCenterwiseEntry's report section to avoid global overlap.
+   ========================================================================== */
+.demand-report-responsive {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.demand-report-responsive,
+.demand-report-responsive * {
+  box-sizing: border-box;
+}
+
+.demand-report-responsive .dynamic-report-heading-compact {
+  margin-top: 0;
+  margin-bottom: 8px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.demand-report-responsive .report-heading-title {
+  margin: 0;
+}
+
+.demand-report-responsive .report-summary-mode-label {
+  margin: 0;
+  color: #194e8b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.demand-report-responsive .report-date-range-badge {
+  font-size: 0.7rem;
+}
+
+.demand-report-responsive .report-summary-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.demand-report-responsive .summary-wise-view-controls {
+  margin-bottom: 10px;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.demand-report-responsive .summary-wise-view-select {
+  min-width: 230px;
+  padding: 7px 10px;
+  border: 1px solid #d9e1e8;
+  border-radius: 6px;
+  background: #fff;
+  font-weight: 600;
+}
+
+.demand-report-responsive .report-matrix-wide-table {
+  min-width: 1100px;
+}
+
+.demand-report-responsive .report-cell-centered {
+  text-align: center;
+}
+
+.demand-report-responsive .report-subheading-compact {
+  margin-bottom: 6px;
+}
+
+.demand-report-responsive .report-subsection-spaced-lg {
+  margin-top: 30px;
+}
+
+.demand-report-responsive .report-subsection-spaced {
+  margin-top: 26px;
+}
+
+.demand-report-responsive .report-note-spaced {
+  margin-top: 10px;
+}
+
+/* react-select styles now live in CSS instead of a JS style object. */
+.demand-report-responsive .dcr-select__control {
+  min-height: 36px;
+  padding: 2px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.demand-report-responsive .dcr-select__control:hover {
+  border-color: #194e8b;
+}
+
+.demand-report-responsive .dcr-select__control--is-focused {
+  border-color: #194e8b;
+  box-shadow: 0 0 0 2px rgba(25, 78, 139, 0.15);
+}
+
+.demand-report-responsive .dcr-select__value-container {
+  padding: 0 6px;
+}
+
+.demand-report-responsive .dcr-select__multi-value {
+  margin: 2px;
+  border-radius: 3px;
+  background: #194e8b;
+}
+
+.demand-report-responsive .dcr-select__multi-value__label {
+  padding: 1px 4px;
+  color: #fff;
+  font-size: 0.75rem;
+}
+
+.demand-report-responsive .dcr-select__multi-value__remove {
+  padding: 0 2px;
+  color: #fff;
+}
+
+.demand-report-responsive .dcr-select__multi-value__remove:hover {
+  background: #0d3a6b;
+  color: #fff;
+}
+
+.demand-report-responsive .dcr-select__placeholder {
+  color: #6c757d;
+  font-size: 0.8rem;
+}
+
+.demand-report-responsive .dcr-select__option {
+  padding: 8px 12px;
+  color: #333;
+  font-size: 0.8rem;
+}
+
+.demand-report-responsive .dcr-select__option--is-selected {
+  background: #194e8b;
+  color: #fff;
+}
+
+.demand-report-responsive .dcr-select__option--is-focused {
+  background: #e8f0f8;
+  color: #333;
+}
+
+.demand-report-responsive .dcr-select__menu,
+.demand-report-responsive .dcr-select__menu-portal {
+  z-index: 9999;
+}
+
+.demand-report-responsive .dynamic-report-filter-wrap {
+  min-width: 0;
+}
+
+.demand-report-responsive .dynamic-report-filter-menu {
+  max-width: calc(100vw - 16px);
+}
+
+@media (max-width: 991.98px) {
+  .demand-center-report-page {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .demand-report-responsive .dynamic-report-panel {
+    padding: 9px;
+  }
+
+  .demand-report-responsive .dynamic-report-filterbar,
+  .demand-report-responsive .progress-hierarchy-filterbar {
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .demand-report-responsive .dynamic-report-filter-wrap,
+  .demand-report-responsive .progress-hierarchy-filter-group {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .demand-report-responsive .progress-hierarchy-filter-group .dcr-select__container {
+    width: 100%;
+  }
+
+  .demand-report-responsive .dynamic-report-clear-btn,
+  .demand-report-responsive .progress-hierarchy-clear-btn {
+    flex: 1 1 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .demand-center-report-page {
+    padding: 55px 8px 14px;
+  }
+
+  .demand-report-responsive .dynamic-report-heading {
+    align-items: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .demand-report-responsive .dynamic-report-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .demand-report-responsive .dynamic-report-tabs button {
+    min-width: 0;
+    width: 100%;
+    padding: 8px 6px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .demand-report-responsive .dynamic-report-filterbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .demand-report-responsive .dynamic-report-filter-wrap {
+    width: 100%;
+    min-width: 0;
+    flex: initial;
+  }
+
+  /* Dropdown options stay directly below the filter control on mobile/tablet. */
+  .demand-report-responsive .dynamic-report-filter-wrap {
+    position: relative;
+    min-width: 0;
+  }
+
+  .demand-report-responsive .dynamic-report-filter-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    bottom: auto;
+    left: 0;
+    right: auto;
+    width: min(280px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+    max-height: 45vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    z-index: 12000;
+  }
+
+  .demand-report-responsive .dynamic-report-view-row {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .demand-report-responsive .dynamic-report-view-row label {
+    flex: 1 1 100%;
+  }
+
+  .demand-report-responsive .dynamic-report-view-row select,
+  .demand-report-responsive .summary-wise-view-select {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .demand-report-responsive .report-tab-date-filter .row > div {
+    width: 100%;
+  }
+
+  .demand-report-responsive .report-tab-date-filter .d-flex {
+    align-items: stretch;
+  }
+
+  .demand-report-responsive .report-tab-date-filter .btn {
+    flex: 1 1 auto;
+    white-space: normal;
+  }
+
+  .demand-report-responsive .scheme-summary-mode-filter {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .demand-report-responsive .scheme-summary-mode-filter select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .demand-report-responsive .progress-hierarchy-filterbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .demand-report-responsive .progress-hierarchy-filter-group {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .demand-report-responsive .dynamic-report-table-scroll,
+  .demand-report-responsive .matrix-scroll {
+    max-width: 100%;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .demand-report-responsive .dynamic-report-table,
+  .demand-report-responsive .dynamic-report-table.matrix-table {
+    width: max-content;
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .demand-report-responsive .dynamic-report-filterbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .demand-report-responsive .dynamic-report-filter-menu {
+    top: calc(100% + 4px);
+    left: 0;
+    right: auto;
+    width: min(280px, calc(100vw - 20px));
+    max-width: calc(100vw - 20px);
+    max-height: 45vh;
+  }
+
+  .demand-report-responsive .dynamic-report-tabs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .demand-report-responsive .report-column-selector-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .demand-report-responsive .report-column-selector-options {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .demand-report-responsive .report-top-summary-table th,
+  .demand-report-responsive .report-top-summary-table td,
+  .demand-report-responsive .dynamic-report-table th,
+  .demand-report-responsive .dynamic-report-table td {
+    padding: 6px;
+    font-size: 0.68rem;
+  }
 }
