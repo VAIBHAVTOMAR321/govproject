@@ -3312,20 +3312,20 @@ const KrishiRegistration = () => {
 
   return (
     <div>
-      <Container fluid className="p-4">
+      <Container fluid className="pt-2">
         <Row>
           <Col lg={12} md={12} sm={12}>
             <DashBoardHeader />
           </Col>
         </Row>
 
-        <Row className="left-top">
+        <Row className="">
           {/* <Col lg={2} md={2} sm={12}>
             <LeftNav />
           </Col> */}
 
           <Col lg={12} md={12} sm={12}>
-            <Container fluid className="dashboard-body-main bg-home">
+            <Container fluid className="dashboard-body-main bg-home p-3">
               <h1 className="page-title">{translations.pageTitle}</h1>
 
               {/* Bulk Upload Section */}
@@ -7074,7 +7074,13 @@ const KrishiRegistration = () => {
                   </Alert>
                 ) : (
                   <>
-                    <Table striped bordered hover className="registration-form">
+                    <Table
+                      striped
+                      bordered
+                      hover
+                      responsive
+                      className="registration-form registration-mobile-scroll-table"
+                    >
                       <thead className="table-light">
                         <tr>
                           <th>

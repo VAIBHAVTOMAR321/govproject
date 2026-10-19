@@ -1382,7 +1382,7 @@ const NurseryFinancialEntry = () => {
               fluid
               className={
                 isAdmin
-                  ? "dashboard-body-main bg-home"
+                  ? "dashboard-body-main bg-home p-3"
                   : "dashboard-body-main bg-home"
               }
               style={isAdmin ? {} : { paddingTop: "10px" }}
@@ -2459,7 +2459,13 @@ const NurseryFinancialEntry = () => {
                   </Alert>
                 ) : (
                   <>
-                    <Table striped bordered hover className="registration-form">
+                    <Table
+                      striped
+                      bordered
+                      hover
+                      responsive
+                      className="registration-form registration-mobile-scroll-table"
+                    >
                       <thead className="table-light">
                         <tr>
                           <th>
