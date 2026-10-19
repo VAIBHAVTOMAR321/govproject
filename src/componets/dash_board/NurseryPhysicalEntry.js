@@ -2179,14 +2179,14 @@ const NurseryPhysicalEntry = () => {
         className={isAdmin ? "p-4" : "p-0"}
         style={isAdmin ? {} : { marginTop: "70px", paddingTop: "15px" }}
       >
-        <Row className={isAdmin ? "left-top" : "w-100 m-0"}>
+        <Row className={isAdmin ? "" : "w-100 m-0"}>
           <Col lg={12} md={12} sm={12} className={isAdmin ? "p-0" : "p-3"}>
             <Container
               fluid
               className={
                 isAdmin
-                  ? "dashboard-body-main bg-home"
-                  : "dashboard-body-main bg-home"
+                  ? "dashboard-body-main bg-home p-3"
+                  : "dashboard-body-main bg-home p-3"
               }
               style={isAdmin ? {} : { paddingTop: "10px" }}
             >
@@ -3263,7 +3263,13 @@ const NurseryPhysicalEntry = () => {
                   </Alert>
                 ) : (
                   <>
-                    <Table striped bordered hover className="registration-form">
+                    <Table
+                      striped
+                      bordered
+                      hover
+                      responsive
+                      className="registration-form registration-mobile-scroll-table"
+                    >
                       <thead className="table-light">
                         <tr>
                           <th>
@@ -4127,7 +4133,13 @@ const NurseryPhysicalEntry = () => {
                 </Alert>
               ) : (
                 <>
-                  <Table striped bordered hover className="registration-form">
+                  <Table
+                    striped
+                    bordered
+                    hover
+                    responsive
+                    className="registration-form registration-mobile-scroll-table"
+                  >
                     <thead className="table-light">
                       <tr>
                         <th>क्र.सं.</th>

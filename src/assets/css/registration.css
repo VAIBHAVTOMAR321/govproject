@@ -158,6 +158,12 @@
     min-width: 1000px;
     margin-bottom: 0;
   }
+
+  .table-responsive > .registration-mobile-scroll-table {
+    width: max-content;
+    min-width: 900px;
+    margin-bottom: 0;
+  }
 }
 
 /* --- 6. Summary Cards and Modal Enhancements --- */
