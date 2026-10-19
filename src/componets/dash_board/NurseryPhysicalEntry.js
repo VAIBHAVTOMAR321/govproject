@@ -2176,7 +2176,7 @@ const NurseryPhysicalEntry = () => {
       {!isAdmin && <NurseryNavigation />}
       <Container
         fluid
-        className={isAdmin ? "p-4" : "p-0"}
+        className={isAdmin ? "" : "p-0"}
         style={isAdmin ? {} : { marginTop: "70px", paddingTop: "15px" }}
       >
         <Row className={isAdmin ? "" : "w-100 m-0"}>
