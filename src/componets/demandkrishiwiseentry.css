@@ -1,0 +1,237 @@
+/* DemandKrishiwiseEntry: all styles are scoped to this component. */
+.demand-krishiwise-page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding-top: 16px;
+  padding-bottom: 24px;
+  color: #243447;
+}
+
+.demand-krishiwise-page,
+.demand-krishiwise-page * {
+  box-sizing: border-box;
+}
+
+.demand-krishiwise-page .demand-krishiwise-title {
+  overflow-wrap: anywhere;
+  font-weight: 700;
+  color: #194e8b;
+}
+
+.demand-krishiwise-page .demand-krishiwise-center-details {
+  padding: 12px 14px;
+  border: 1px solid #e1e8f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.demand-krishiwise-page .demand-krishiwise-date-panel,
+.demand-krishiwise-page .demand-krishiwise-filter-panel {
+  min-width: 0;
+  padding: clamp(12px, 2vw, 24px) !important;
+  border-color: #dfe7f0 !important;
+  border-radius: 10px !important;
+}
+
+.demand-krishiwise-page .form-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #344054;
+}
+
+.demand-krishiwise-page .form-control,
+.demand-krishiwise-page .form-select {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.demand-krishiwise-page .react-select-container,
+.demand-krishiwise-page .css-b62m3t-container,
+.demand-krishiwise-page [class*="-container"] {
+  min-width: 0;
+}
+
+.demand-krishiwise-page .demand-krishiwise-export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.demand-krishiwise-page .demand-krishiwise-export-actions .btn {
+  max-width: 100%;
+  white-space: normal;
+}
+
+.demand-krishiwise-page .demand-krishiwise-column-selection {
+  min-width: 0;
+  border-color: #dfe7f0 !important;
+  border-radius: 8px !important;
+}
+
+.demand-krishiwise-page .demand-krishiwise-column-header {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.demand-krishiwise-page .demand-krishiwise-column-options {
+  gap: 4px 12px;
+}
+
+.demand-krishiwise-page .form-check {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.demand-krishiwise-page .demand-krishiwise-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+}
+
+.demand-krishiwise-page .demand-krishiwise-table {
+  width: max-content;
+  min-width: 100%;
+  margin-bottom: 0;
+  white-space: normal;
+}
+
+.demand-krishiwise-page .demand-krishiwise-table th,
+.demand-krishiwise-page .demand-krishiwise-table td {
+  min-width: 100px;
+  max-width: 280px;
+  padding: 8px 10px;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.demand-krishiwise-page .demand-krishiwise-table thead th {
+  white-space: normal;
+  background: #f1f5f9;
+  color: #243447;
+}
+
+.demand-krishiwise-page .demand-krishiwise-table tfoot {
+  font-weight: 700;
+}
+
+.demand-krishiwise-page .demand-krishiwise-pagination {
+  max-width: 100%;
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.demand-krishiwise-page .alert {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 991.98px) {
+  .demand-krishiwise-page {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    padding-top: 12px;
+  }
+
+  .demand-krishiwise-page .demand-krishiwise-date-panel,
+  .demand-krishiwise-page .demand-krishiwise-filter-panel {
+    padding: 14px !important;
+  }
+
+  .demand-krishiwise-page .demand-krishiwise-export-actions .btn {
+    flex: 1 1 180px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .demand-krishiwise-page {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  .demand-krishiwise-page .demand-krishiwise-title {
+    font-size: 1.15rem;
+    margin-bottom: 14px !important;
+  }
+
+  .demand-krishiwise-page .demand-krishiwise-center-details > .d-flex {
+    gap: 12px !important;
+  }
+
+  .demand-krishiwise-page .demand-krishiwise-date-panel,
+  .demand-krishiwise-page .demand-krishiwise-filter-panel {
+    padding: 10px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .demand-krishiwise-page .demand-krishiwise-filter-panel .row > [class*="col-"],
+  .demand-krishiwise-page .demand-krishiwise-date-panel .row > [class*="col-"] {
+    width: 100%;
+  }
+
+  .demand-krishiwise-page .demand-krishiwise-export-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .demand-krishiwise-page .demand-krishiwise-export-actions .btn {
+    width: 100%;
+    min-width: 0;
+    flex: initial;
+    padding: 8px 6px;
+    font-size: 0.82rem;
+  }
+
+  .demand-krishiwise-page .demand-krishiwise-column-header {
+    align-items: flex-start !important;
+    flex-direction: column;
+  }
+
+  .demand-krishiwise-page .demand-krishiwise-column-header > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .demand-krishiwise-page .demand-krishiwise-column-header .btn {
+    margin-right: 0 !important;
+  }
+
+  .demand-krishiwise-page .demand-krishiwise-table th,
+  .demand-krishiwise-page .demand-krishiwise-table td {
+    min-width: 110px;
+    padding: 7px 8px;
+    font-size: 0.82rem;
+  }
+
+  .demand-krishiwise-page .demand-krishiwise-pagination {
+    padding-left: 0;
+    justify-content: center;
+  }
+
+  .demand-krishiwise-page .demand-krishiwise-pagination .page-link {
+    padding: 0.35rem 0.55rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .demand-krishiwise-page .demand-krishiwise-export-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .demand-krishiwise-page .demand-krishiwise-column-options {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .demand-krishiwise-page .demand-krishiwise-table th,
+  .demand-krishiwise-page .demand-krishiwise-table td {
+    min-width: 120px;
+  }
+}
