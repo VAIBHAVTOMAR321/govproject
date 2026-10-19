@@ -27,6 +27,8 @@
 .demand-view-page-heading h2 {
   margin: 0;
   min-width: 0;
+  font-size: 18px;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 
