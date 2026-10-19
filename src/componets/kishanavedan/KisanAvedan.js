@@ -471,7 +471,7 @@ export default function KisanAavedan() {
 
         function tableHTML(k){
           const cfg=COLS[k];
-          let h='<table class="expense-table">';
+          let h='<div class="expense-table-scroll"><table class="expense-table">';
           h+='<colgroup><col style="width:38px">'+cfg.c.map(c=>`<col style="width:${c[2]||"auto"}">`).join("")+'<col class="noprint" style="width:46px"></colgroup>';
           h+='<thead><tr><th>क्र०</th>';
           cfg.c.forEach(c=>h+=`<th>${c[1]}</th>`);
@@ -488,7 +488,7 @@ export default function KisanAavedan() {
           h+=`<tr class="tot"><td colspan="${ai+1}" style="text-align:right">योग</td><td class="calc num" data-tot="${k}">${fmtN(sum(k))}</td>`;
           for(let j=ai+1;j<cfg.c.length;j++) h+="<td></td>";
           h+='<td class="noprint"></td>';
-          h+='</tr></tbody></table>';
+          h+='</tr></tbody></table></div>';
           h+=`<button class="addrow noprint" data-add="${k}">+ पंक्ति जोड़ें</button>`;
           return h;
         }
