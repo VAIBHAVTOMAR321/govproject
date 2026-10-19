@@ -18,6 +18,7 @@ import html2pdf from "html2pdf.js";
 import { FaFileExcel, FaFilePdf } from "react-icons/fa";
 import Select from "react-select";
 import { convertToDisplayFormat } from "../utils/dateUtils";
+import "./demandkrishiwiseentry.css";
 
 // API URL
 const BENEFICIARIES_API_URL =
@@ -140,8 +141,8 @@ const DemandKrishiwiseEntry = () => {
     };
 
     return (
-      <div className="column-selection mb-3 p-3 border rounded bg-light">
-        <div className="d-flex justify-content-between align-items-center mb-2">
+      <div className="column-selection demand-krishiwise-column-selection mb-3 p-3 border rounded bg-light">
+        <div className="demand-krishiwise-column-header d-flex justify-content-between align-items-center mb-2">
           <h6 className="small-fonts mb-0">{title}</h6>
           <div>
             <Button
@@ -163,7 +164,7 @@ const DemandKrishiwiseEntry = () => {
         </div>
         <Row>
           <Col>
-            <div className="d-flex flex-wrap">
+            <div className="demand-krishiwise-column-options d-flex flex-wrap">
               {columns.map((col) => (
                 <Form.Check
                   key={col.key}
@@ -620,11 +621,11 @@ const DemandKrishiwiseEntry = () => {
   };
 
   return (
-    <Container fluid className="px-3" style={{ paddingTop: '60px' }}>
-      <div className="mb-3">
+    <Container fluid className="demand-krishiwise-page px-3">
+      <div className="demand-krishiwise-navigation mb-3">
         <DemandNavigation />
       </div>
-      <h4 className="mb-4">{centerData.centerName} - कृषिवाइज एंट्री</h4>
+      <h4 className="demand-krishiwise-title mb-4">{centerData.centerName} - कृषिवाइज एंट्री</h4>
       
       {apiError && <Alert variant="danger">{apiError}</Alert>}
       
@@ -643,7 +644,7 @@ const DemandKrishiwiseEntry = () => {
       )}
       
       {!isLoading && beneficiaries.length > 0 && (
-        <div className="mb-4">
+        <div className="demand-krishiwise-center-details mb-4">
           <h5>सेंटर विवरण:</h5>
           <div className="d-flex gap-4 flex-wrap">
             <div className="d-flex flex-column">
@@ -664,7 +665,7 @@ const DemandKrishiwiseEntry = () => {
 
       {/* Date Range Filter */}
       {!isLoading && beneficiaries.length > 0 && !tableVisible && (
-        <div className="mb-4 p-4 border rounded bg-light">
+        <div className="demand-krishiwise-date-panel mb-4 p-4 border rounded bg-light">
           <h5 className="mb-3">तारीख सीमा चुनें:</h5>
           <Row className="align-items-end">
             <Col md={4} className="mb-3">
@@ -707,7 +708,7 @@ const DemandKrishiwiseEntry = () => {
       {/* Filters and Table */}
       {tableVisible && (
         <>
-          <div className="mb-4 p-4 border rounded bg-light">
+          <div className="demand-krishiwise-date-panel mb-4 p-4 border rounded bg-light">
             <h5 className="mb-3">फिल्टर्स:</h5>
             <Row>
               <Col md={6} className="mb-3">
@@ -805,7 +806,7 @@ const DemandKrishiwiseEntry = () => {
             title="स्तंभ चयन करें"
           />
 
-          <div className="mb-3 d-flex gap-2">
+          <div className="demand-krishiwise-export-actions mb-3 d-flex gap-2">
             <Button
               variant="success"
               onClick={() => downloadExcel(filteredData, "KrishiwiseEntry", beneficiariesTableColumnMapping, selectedColumns)}
@@ -822,7 +823,8 @@ const DemandKrishiwiseEntry = () => {
             </Button>
           </div>
           
-          <Table striped bordered hover className="registration-form">
+          <div className="demand-krishiwise-table-scroll">
+          <Table striped bordered hover className="registration-form demand-krishiwise-table">
             <thead className="table-light">
               <tr>
                 <th>क्र.सं.</th>
@@ -873,6 +875,7 @@ const DemandKrishiwiseEntry = () => {
               </tr>
             </tfoot>
           </Table>
+          </div>
           
           {/* Pagination controls */}
           {filteredData.length > itemsPerPage && (
@@ -880,7 +883,7 @@ const DemandKrishiwiseEntry = () => {
               <div className="small-fonts mb-3 text-center">
                 पृष्ठ {currentPage} का {totalPages}
               </div>
-              <Pagination className="d-flex justify-content-center">
+              <Pagination className="demand-krishiwise-pagination d-flex justify-content-center">
                 <Pagination.Prev
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(currentPage - 1)}

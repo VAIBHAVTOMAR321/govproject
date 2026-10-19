@@ -617,9 +617,7 @@ export default function VirtanKishanBeej() {
             <p>आवंटन · वितरण</p>
           </div>
         </div>
-        <span className="kb-api-badge">
-          <i /> API से जुड़ा
-        </span>
+        
       </header>
       <main className="kb-main">
         <section className="kb-intro">
