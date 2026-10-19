@@ -1,0 +1,314 @@
+/* DemandView page styles. All selectors are scoped to .demand-view-container. */
+.demand-view-container {
+  width: 100%;
+  min-width: 0;
+  padding-left: clamp(12px, 2vw, 28px);
+  padding-right: clamp(12px, 2vw, 28px);
+  overflow-x: clip;
+}
+
+.demand-view-container *,
+.demand-view-container *::before,
+.demand-view-container *::after {
+  box-sizing: border-box;
+}
+
+.demand-view-page-heading {
+  margin-top: 50px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.demand-view-page-heading h2 {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.demand-view-heading-actions,
+.demand-view-export-actions,
+.demand-view-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.demand-view-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.demand-view-card-header h5 {
+  margin: 0;
+}
+
+.demand-view-record-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 1 1 620px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.demand-view-search-group {
+  flex: 1 1 260px;
+  width: auto;
+  min-width: 0;
+}
+
+.demand-view-search-group .form-control {
+  min-width: 0;
+}
+
+.demand-view-compact-button {
+  font-size: 0.8rem !important;
+  white-space: normal;
+  line-height: 1.35;
+}
+
+.demand-view-add-search-button {
+  margin-left: 8px;
+}
+
+.demand-view-excel-button {
+  color: #fff !important;
+  background-color: #28a745 !important;
+  border-color: #28a745 !important;
+}
+
+.demand-view-pdf-button {
+  color: #fff !important;
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+}
+
+.demand-view-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.demand-view-main-table-scroll {
+  max-height: 400px;
+}
+
+.demand-view-center-table-scroll {
+  max-height: 450px;
+}
+
+.demand-view-container .table-responsive {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.demand-view-container table {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.demand-view-container th,
+.demand-view-container td {
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.demand-view-container .table-thead th {
+  white-space: normal;
+  min-width: 90px;
+}
+
+.demand-view-multi-select {
+  min-height: 120px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.demand-view-quantity-input {
+  width: 120px;
+  max-width: 100%;
+}
+
+.demand-view-inline-editor,
+.demand-view-quantity-display,
+.demand-view-amount-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.demand-view-amount-cell {
+  justify-content: space-between;
+}
+
+.demand-view-total-row {
+  font-weight: 700;
+  background-color: #f8f9fa;
+}
+
+.demand-view-container .card {
+  min-width: 0;
+}
+
+.demand-view-container .card-body,
+.demand-view-container .card-header {
+  min-width: 0;
+}
+
+.demand-view-container .btn {
+  max-width: 100%;
+}
+
+@media (max-width: 991.98px) {
+  .demand-view-container {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+
+  .demand-view-record-toolbar {
+    justify-content: flex-start;
+    flex-basis: 100%;
+  }
+
+  .demand-view-search-group {
+    flex-basis: 100%;
+  }
+
+  .demand-view-card-header {
+    align-items: flex-start;
+  }
+
+  .demand-view-export-actions {
+    width: 100%;
+  }
+
+  .demand-view-export-actions .btn {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .demand-view-container {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .demand-view-page-heading {
+    align-items: stretch;
+  }
+
+  .demand-view-page-heading h2 {
+    width: 100%;
+    font-size: 1.35rem;
+  }
+
+  .demand-view-heading-actions {
+    width: 100%;
+  }
+
+  .demand-view-heading-actions .btn {
+    flex: 1 1 auto;
+  }
+
+  .demand-view-card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .demand-view-record-toolbar {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .demand-view-search-group {
+    width: 100%;
+    flex: 1 1 auto;
+  }
+
+  .demand-view-search-group .input-group-text {
+    flex-shrink: 0;
+  }
+
+  .demand-view-add-search-button {
+    margin-left: 0;
+    margin-top: 6px;
+  }
+
+  .demand-view-export-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .demand-view-compact-button {
+    font-size: 0.75rem !important;
+  }
+
+  .demand-view-container .card-body {
+    padding: 0.85rem;
+  }
+
+  .demand-view-container .table {
+    font-size: 0.82rem;
+  }
+
+  .demand-view-container .table th,
+  .demand-view-container .table td {
+    padding: 0.45rem;
+  }
+
+  .demand-view-row-actions {
+    flex-wrap: nowrap;
+  }
+
+  .demand-view-row-actions .btn {
+    padding: 0.25rem 0.4rem;
+  }
+
+  .demand-view-quantity-input {
+    width: 100%;
+  }
+
+  .demand-view-container .modal-dialog {
+    margin: 0.5rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .demand-view-export-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .demand-view-heading-actions {
+    flex-direction: column;
+  }
+
+  .demand-view-heading-actions .btn {
+    width: 100%;
+  }
+
+  .demand-view-container .modal-footer {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .demand-view-container .modal-footer .btn {
+    flex: 1 1 auto;
+  }
+}

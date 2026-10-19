@@ -7,6 +7,7 @@ import DashBoardHeader from './DashBoardHeader';
 import { RiAddLine, RiEditLine, RiDeleteBinLine, RiSaveLine, RiCloseLine, RiEyeLine, RiSearchLine, RiFileDownloadLine, RiFileExcel2Line, RiFilePdfLine } from 'react-icons/ri';
 import * as XLSX from 'xlsx';
 import html2pdf from 'html2pdf.js';
+import '../../assets/css/demandview.css';
 
 const DemandView = () => {
   const navigate = useNavigate();
@@ -651,12 +652,12 @@ const DemandView = () => {
   return (
     <>
       <DashBoardHeader />
-      <Container fluid className="py-4 bg-home">
-        <Row className="mb-4 table-m-top">
+      <Container fluid className="demand-view-container py-4 bg-home">
+        <Row className="mb-4 table-m-top demand-view-title-row">
           <Col>
-            <div className="d-flex justify-content-between align-items-center">
+            <div className="demand-view-page-heading">
               <h2>डिमांड प्रबंधन</h2>
-              <div className="d-flex gap-2">
+              <div className="demand-view-heading-actions">
                 <Button variant="primary" onClick={() => setShowAddModal(true)}>
                   <RiAddLine /> नई डिमांड जोड़ें
                 </Button>
@@ -672,10 +673,10 @@ const DemandView = () => {
         <Row className="mb-4">
           <Col>
             <Card>
-              <Card.Header className="d-flex justify-content-between align-items-center">
+              <Card.Header className="demand-view-card-header">
                 <h5 className="mb-0">डिमांड रिकॉर्ड्स</h5>
-                <div className="d-flex gap-2">
-                  <InputGroup style={{ width: '500px' }}>
+                <div className="demand-view-record-toolbar">
+                  <InputGroup className="demand-view-search-group">
                     <InputGroup.Text><RiSearchLine /></InputGroup.Text>
                     <Form.Control
                       type="text"
@@ -683,14 +684,14 @@ const DemandView = () => {
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
-                    <Button style={{marginLeft: '10px', fontSize: '10px'}} variant="primary" onClick={() => setShowAddModal(true)}>
+                    <Button className="demand-view-compact-button demand-view-add-search-button" variant="primary" onClick={() => setShowAddModal(true)}>
                       <RiAddLine /> नई डिमांड जोड़ें
                     </Button>
                   </InputGroup>
-                  <Button variant="outline-success" style={{backgroundColor: '#28a745', color: 'white', fontSize: '10px'}} onClick={exportDemandsToExcel}>
+                  <Button className="demand-view-compact-button demand-view-excel-button" variant="outline-success" onClick={exportDemandsToExcel}>
                     <RiFileExcel2Line /> Excel निर्यात करें
                   </Button>
-                  <Button variant="outline-danger" style={{backgroundColor: '#dc3545', color: 'white', fontSize: '10px'}} onClick={exportDemandsToPDF}>
+                  <Button className="demand-view-compact-button demand-view-pdf-button" variant="outline-danger" onClick={exportDemandsToPDF}>
                     <RiFilePdfLine /> PDF निर्यात करें
                   </Button>
                 </div>
@@ -705,7 +706,7 @@ const DemandView = () => {
                 ) : (
                   <>
                     {filteredDemands.length > 0 ? (
-                      <div style={{ maxHeight: '400px', overflowY: 'auto' }} ref={demandsTableRef}>
+                      <div className="demand-view-table-scroll demand-view-main-table-scroll" ref={demandsTableRef}>
                         <Table striped bordered hover responsive className="mb-0 table-thead-style">
                            <thead className='table-thead'>
                              <tr>
@@ -758,13 +759,13 @@ const DemandView = () => {
         <Row className="mb-4">
           <Col>
             <Card>
-              <Card.Header className="d-flex justify-content-between align-items-center">
+              <Card.Header className="demand-view-card-header">
                 <h5 className="mb-0">सेंटर अनुसार डिमांड</h5>
-                <div className="d-flex gap-2">
-                  <Button variant="outline-success"style={{backgroundColor: '#28a745', color: 'white', fontSize: '10px' }} onClick={exportCenterDemandsToExcel}>
+                <div className="demand-view-export-actions">
+                  <Button className="demand-view-compact-button demand-view-excel-button" variant="outline-success" onClick={exportCenterDemandsToExcel}>
                     <RiFileExcel2Line /> Excel निर्यात करें
                   </Button>
-                  <Button variant="outline-danger" style={{backgroundColor: '#dc3545', color: 'white', fontSize: '10px' }} onClick={exportCenterDemandsToPDF}>
+                  <Button className="demand-view-compact-button demand-view-pdf-button" variant="outline-danger" onClick={exportCenterDemandsToPDF}>
                     <RiFilePdfLine /> PDF निर्यात करें
                   </Button>
                 </div>
@@ -779,7 +780,7 @@ const DemandView = () => {
                          <Form.Select
                             multiple
                             value={selectedCenters}
-                            style={{ height: '120px', cursor: 'pointer', fontSize: '12px'  }}
+                            className="demand-view-multi-select"
                             onMouseDown={(e) => {
                               e.preventDefault();
                               const value = e.target.value;
@@ -800,7 +801,7 @@ const DemandView = () => {
                         <Form.Select
                           multiple
                           value={selectedSubInvestments}
-                          style={{ height: '120px', cursor: 'pointer', fontSize: '12px'  }}
+                          className="demand-view-multi-select"
                           onMouseDown={(e) => {
                             e.preventDefault();
                             const value = e.target.value;
@@ -841,7 +842,7 @@ const DemandView = () => {
                 ) : centerError ? (
                   <Alert variant="danger">{centerError}</Alert>
                 ) : filteredCenterDemands?.length > 0 ? (
-                  <div style={{ maxHeight: '450px', overflowY: 'auto' }} ref={centerDemandsTableRef}>
+                  <div className="demand-view-table-scroll demand-view-center-table-scroll" ref={centerDemandsTableRef}>
                     <Table striped bordered hover responsive className='table-thead-style'>
                       <thead className='table-thead'>
                         <tr>
@@ -877,7 +878,7 @@ const DemandView = () => {
                                 <td>{item?.demand?.unit || '-'}</td>
                                 <td>
                                   {editingCenterDemandId === item.id ? (
-                                    <div className="d-flex align-items-center gap-2 flex-wrap">
+                                    <div className="demand-view-inline-editor">
                                       <Form.Control
                                         type="number"
                                         step="0.01"
@@ -885,7 +886,7 @@ const DemandView = () => {
                                         onChange={(e) => handleEditQuantityChange(e, item?.demand?.allocated_quantity || 0)}
                                         placeholder="मात्रा दर्ज करें"
                                         isInvalid={!!editValidationError}
-                                        style={{ width: '120px' }}
+                                        className="demand-view-quantity-input"
                                       />
                                       <Button variant="success" size="sm" onClick={() => handleEditCenterDemand(item.id, item?.demand?.allocated_quantity || 0)} disabled={isSubmitting || !!editValidationError}>
                                         {isSubmitting ? <Spinner animation="border" size="sm" /> : '✓'}
@@ -898,7 +899,7 @@ const DemandView = () => {
                                       )}
                                     </div>
                                   ) : (
-                                    <div className="d-flex align-items-center gap-2">
+                                    <div className="demand-view-quantity-display">
                                       <span>{item.demanded_quantity ?? '-'}</span>
                                       <Button variant="outline-primary" size="sm" onClick={() => startEditingCenterDemand(item)} title="संपादित करें">✎</Button>
                                     </div>
@@ -929,7 +930,7 @@ const DemandView = () => {
                         })()}
 
                         {/* Total Row */}
-                        <tr style={{ fontWeight: 'bold', backgroundColor: '#f8f9fa' }}>
+                        <tr className="demand-view-total-row">
                           <td colSpan={4}>कुल</td>
                           <td>{(filteredCenterDemands.reduce((sum, item) => sum + parseFloat(item.demanded_quantity || 0), 0)).toFixed(2)}</td>
                           <td></td>
