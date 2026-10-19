@@ -2540,3 +2540,127 @@
     background: #fff !important;
   }
 }
+
+
+/* === RESPONSIVE TABLE FIXES (screen only; existing print layout is unchanged) === */
+.kisan-html-react-root .table-scroll,
+.kisan-html-react-root .expense-table-scroll {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+.kisan-html-react-root .table-scroll > table,
+.kisan-html-react-root .expense-table-scroll > table {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.kisan-html-react-root .reg-table {
+  width: 100%;
+  min-width: 900px;
+  table-layout: auto;
+}
+
+.kisan-html-react-root .reg-table th,
+.kisan-html-react-root .reg-table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.kisan-html-react-root .reg-table th:last-child,
+.kisan-html-react-root .reg-table td.act {
+  min-width: 160px;
+}
+
+.kisan-html-react-root .reg-table td.act {
+  display: table-cell;
+  white-space: nowrap;
+}
+
+.kisan-html-react-root .reg-table td.act > * {
+  margin: 2px;
+}
+
+.kisan-html-react-root .expense-table-scroll .expense-table {
+  width: 100%;
+  min-width: 520px;
+  table-layout: auto;
+}
+
+.kisan-html-react-root .expense-table-scroll .expense-table th,
+.kisan-html-react-root .expense-table-scroll .expense-table td {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.kisan-html-react-root .expense-table-scroll .expense-table td input {
+  min-width: 150px;
+  max-width: 100%;
+}
+
+@media (max-width: 860px) {
+  .kisan-html-react-root,
+  .kisan-html-react-root .shell,
+  .kisan-html-react-root main,
+  .kisan-html-react-root .view,
+  .kisan-html-react-root .card,
+  .kisan-html-react-root .pad,
+  .kisan-html-react-root #workBody {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .kisan-html-react-root .table-scroll,
+  .kisan-html-react-root .expense-table-scroll {
+    margin-right: 0;
+    margin-left: 0;
+  }
+
+  .kisan-html-react-root .reg-table {
+    min-width: 860px;
+  }
+
+  .kisan-html-react-root .expense-table-scroll .expense-table {
+    min-width: 500px;
+  }
+}
+
+@media (max-width: 600px) {
+  .kisan-html-react-root .table-scroll,
+  .kisan-html-react-root .expense-table-scroll {
+    width: 100%;
+    max-width: calc(100vw - 32px);
+  }
+
+  .kisan-html-react-root .reg-table {
+    min-width: 820px;
+    font-size: 12px;
+  }
+
+  .kisan-html-react-root .reg-table th,
+  .kisan-html-react-root .reg-table td {
+    padding: 7px 8px;
+  }
+
+  .kisan-html-react-root .expense-table-scroll .expense-table {
+    min-width: 480px;
+    font-size: 12px;
+  }
+
+  .kisan-html-react-root .expense-table-scroll .expense-table th,
+  .kisan-html-react-root .expense-table-scroll .expense-table td {
+    padding: 7px 8px;
+  }
+
+  .kisan-html-react-root .expense-table-scroll .expense-table td input {
+    min-width: 135px;
+    padding: 8px;
+  }
+}
