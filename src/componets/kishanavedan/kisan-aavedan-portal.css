@@ -2191,6 +2191,7 @@
   .kisan-html-react-root .tabs {
     flex-wrap: wrap;
     padding: 0 8px;
+
   }
   .kisan-html-react-root .tabs a {
     flex: 1 1 auto;
