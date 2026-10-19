@@ -15,6 +15,7 @@ import { useCenter } from './all_login/CenterContext';
 import { useAuth } from '../context/AuthContext';
 import { RiAddLine } from 'react-icons/ri';
 import DemandNavigation from './DemandNavigation';
+import '../assets/css/demandgenerate.css';
 
 const API_BASE = 'https://mahadevaaya.com/govbillingsystem/backend/api';
 
@@ -291,7 +292,7 @@ const DemandGenerate = () => {
               size="sm"
               onClick={() => handleSaveDemand(d.demand_id, d.allocated_quantity)}
               disabled={isSubmitting || !!validationError}
-              style={{ backgroundColor: '#0d9488', borderColor: '#0d9488' }}
+              className="demand-generate-action-button"
             >
               {isSubmitting ? <Spinner animation="border" size="sm" /> : (
                 <>सबमिट <RiAddLine /></>
@@ -331,13 +332,13 @@ const DemandGenerate = () => {
             isInvalid={!!validationError}
             max={d.allocated_quantity}
             size="sm"
-            style={{ width: '100px' }}
+            className="demand-generate-quantity-input"
           />
           <Button
             size="sm"
             onClick={() => handleEditDemand(recordId, d.allocated_quantity)}
             disabled={isSubmitting || !!validationError}
-            style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
+            className="demand-generate-action-button demand-generate-save-edit"
           >
             {isSubmitting ? <Spinner animation="border" size="sm" /> : '✓'}
           </Button>
@@ -370,11 +371,11 @@ const DemandGenerate = () => {
             </Button>
           </div>
           {editingDisabled ? (
-            <div className="text-danger small" style={{ fontSize: '0.7rem' }}>
+            <div className="text-danger demand-generate-edit-hint small">
               3 दिन के बाद संपादन अक्षम है
             </div>
           ) : (
-            <div className="text-muted small" style={{ fontSize: '0.7rem' }}>
+            <div className="text-muted demand-generate-edit-hint small">
               आप 3 दिन के भीतर संपादित कर सकते हैं
             </div>
           )}
@@ -389,7 +390,7 @@ const DemandGenerate = () => {
         <Button
           size="sm"
           onClick={() => startEditing(d.demand_id)}
-          style={{ backgroundColor: '#0d9488', borderColor: '#0d9488' }}
+          className="demand-generate-action-button"
         >
           <RiAddLine />
         </Button>
@@ -418,7 +419,7 @@ const DemandGenerate = () => {
   };
 
   return (
-    <Container fluid className="px-3" style={{ paddingTop: '60px' }}>
+    <Container fluid className="demand-generate-page px-3">
       <div className="mb-3">
         <DemandNavigation />
       </div>
@@ -426,8 +427,7 @@ const DemandGenerate = () => {
       <Row className="mb-3">
         <Col>
           <div
-            className="p-3 rounded shadow-sm"
-            style={{ backgroundColor: '#2a4682', color: 'white' }}
+            className="demand-generate-title p-3 rounded shadow-sm"
           >
             <div className="d-flex justify-content-between align-items-center">
               <div>
@@ -447,8 +447,7 @@ const DemandGenerate = () => {
         <Col>
           <Card className="border-0 shadow-sm">
             <Card.Header
-              className="py-2"
-              style={{ backgroundColor: '#0d9488', color: 'white' }}
+              className="demand-generate-card-header py-2"
             >
               <div className="d-flex justify-content-between align-items-center">
                 <span className="fw-bold">सभी डिमांड</span>
@@ -460,14 +459,14 @@ const DemandGenerate = () => {
             <Card.Body className="p-0">
               {loading ? (
                 <div className="text-center py-4">
-                  <Spinner animation="border" style={{ color: '#0d9488' }} />
+                  <Spinner animation="border" className="demand-generate-spinner" />
                 </div>
               ) : (
                 <div className="table-responsive">
                   <Table bordered striped hover responsive className="mb-0 table-sm">
                     <thead className="table-light">
                       <tr>
-                        <th className="text-center" style={{ width: '50px' }}>क्र.सं.</th>
+                        <th className="text-center demand-generate-serial">क्र.सं.</th>
                         <th>उप-मद का नाम</th>
                         <th className="text-nowrap">इकाई</th>
                         <th className="text-nowrap">कुल लक्ष्य</th>
@@ -486,8 +485,7 @@ const DemandGenerate = () => {
                             <td className="text-nowrap">{d.sub_investment_name}</td>
                             <td>
                               <span
-                                className="badge"
-                                style={{ backgroundColor: '#6b7280', color: 'white' }}
+                                className="badge demand-generate-unit-badge"
                               >
                                 {d.unit || 'नग'}
                               </span>
@@ -496,7 +494,7 @@ const DemandGenerate = () => {
                             <td className="text-nowrap">₹{d.rate}</td>
                             <td className="text-nowrap">₹{d.amount}</td>
                             <td className="text-nowrap">{d.scheme_name || '-'}</td>
-                            <td style={{ minWidth: '180px' }}>
+                            <td className="demand-generate-quantity-cell">
                               {renderDemandedQuantityCell(d)}
                             </td>
                             <td className="text-nowrap">{renderAmountCell(d)}</td>

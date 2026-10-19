@@ -1,0 +1,169 @@
+/* DemandGenerate component styles. Scoped to avoid leaking into other pages. */
+.demand-generate-page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding-top: 60px;
+  padding-bottom: 1.5rem;
+  overflow-x: clip;
+}
+
+.demand-generate-page,
+.demand-generate-page *,
+.demand-generate-page *::before,
+.demand-generate-page *::after {
+  box-sizing: border-box;
+}
+
+.demand-generate-title {
+  color: #fff;
+  background: #2a4682;
+  overflow-wrap: anywhere;
+}
+
+.demand-generate-card-header {
+  color: #fff;
+  background: #0d9488;
+}
+
+.demand-generate-spinner {
+  color: #0d9488;
+}
+
+.demand-generate-unit-badge {
+  color: #fff;
+  background-color: #6b7280;
+}
+
+.demand-generate-action-button {
+  color: #fff;
+  background-color: #0d9488;
+  border-color: #0d9488;
+  white-space: nowrap;
+}
+
+.demand-generate-save-edit {
+  background-color: #10b981;
+  border-color: #10b981;
+}
+
+.demand-generate-quantity-input {
+  width: 100px;
+  min-width: 0;
+}
+
+.demand-generate-edit-hint {
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.demand-generate-serial {
+  width: 50px;
+  min-width: 50px;
+}
+
+.demand-generate-quantity-cell {
+  min-width: 180px;
+}
+
+.demand-generate-page .card,
+.demand-generate-page .card-body,
+.demand-generate-page .row,
+.demand-generate-page [class*="col-"] {
+  min-width: 0;
+}
+
+.demand-generate-page .table-responsive {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.demand-generate-page table {
+  min-width: 1050px;
+  margin-bottom: 0;
+}
+
+.demand-generate-page th,
+.demand-generate-page td {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.demand-generate-page th:nth-child(2),
+.demand-generate-page td:nth-child(2),
+.demand-generate-page th:nth-child(7),
+.demand-generate-page td:nth-child(7) {
+  white-space: normal;
+  min-width: 160px;
+}
+
+.demand-generate-page .d-flex {
+  min-width: 0;
+}
+
+.demand-generate-page .alert {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 991.98px) {
+  .demand-generate-page {
+    padding-top: 58px;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .demand-generate-page .card-header {
+    padding: 0.65rem 0.8rem !important;
+  }
+
+  .demand-generate-page .table {
+    font-size: 0.85rem;
+  }
+
+  .demand-generate-page .table th,
+  .demand-generate-page .table td {
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .demand-generate-page {
+    padding-top: 58px;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  .demand-generate-page .demand-generate-title {
+    padding: 0.85rem !important;
+  }
+
+  .demand-generate-page h5 {
+    font-size: 1rem;
+  }
+
+  .demand-generate-page .table {
+    font-size: 0.78rem;
+  }
+
+  .demand-generate-page .table th,
+  .demand-generate-page .table td {
+    padding: 0.4rem;
+  }
+
+  .demand-generate-page .demand-generate-quantity-cell {
+    min-width: 205px;
+  }
+
+  .demand-generate-page .demand-generate-quantity-input {
+    width: 100%;
+    flex: 1 1 85px;
+  }
+
+  .demand-generate-page .btn {
+    min-height: 32px;
+  }
+}
