@@ -750,9 +750,9 @@ const Billing = () => {
     <>
       <style>{billingTableCss}</style>
       <div>
-        <Container fluid className="p-4">
+        <Container fluid className="p-3">
           <Row><Col lg={12} md={12} sm={12}><DashBoardHeader /></Col></Row>
-          <Row className="left-top">
+          <Row className="">
             <Col lg={12} md={12} sm={10}>
               <Container fluid className="dashboard-body-main bg-home">
                 <h1 className="page-title small-fonts">{translations.billing}</h1>
