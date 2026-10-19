@@ -567,6 +567,9 @@ font-size: 18px;
   .professional-dashboard-body{
 margin-top: 0 !important;
 }
+.progress-hierarchy-filter-group{
+    flex: 1 1 0px !important;
+}
 /* Print-safe: keep selection visible in print */
 @media print {
   .compact-detail-item {

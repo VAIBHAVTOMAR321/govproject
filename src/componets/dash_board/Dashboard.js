@@ -1517,20 +1517,69 @@ const DynamicReportTabs = ({ sourceData }) => {
     const open = openFilter === id;
     const isFiltered = selected !== null && selected !== undefined && selectedCount !== options.length;
 
+    const buttonRef = useRef(null);
+    const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
+
+    const updateMenuPosition = () => {
+      if (!buttonRef.current) return;
+      const rect = buttonRef.current.getBoundingClientRect();
+      const width = Math.min(Math.max(rect.width, 240), window.innerWidth - 16);
+      const left = Math.min(Math.max(rect.left + window.scrollX, 8), Math.max(window.innerWidth - width - 8, 8));
+      setMenuPos({
+        top: rect.bottom + window.scrollY + 6,
+        left,
+        width,
+      });
+    };
+
+    useEffect(() => {
+      if (open) {
+        updateMenuPosition();
+      }
+    }, [open, id]);
+
+    useEffect(() => {
+      if (!open) return;
+
+      const handleScroll = () => updateMenuPosition();
+      const handleResize = () => updateMenuPosition();
+
+      window.addEventListener('scroll', handleScroll, true);
+      window.addEventListener('resize', handleResize);
+
+      return () => {
+        window.removeEventListener('scroll', handleScroll, true);
+        window.removeEventListener('resize', handleResize);
+      };
+    }, [open]);
+
     return (
-      <div className="dynamic-report-filter-wrap">
+      <div className="dynamic-report-filter-wrap" style={{ position: 'relative' }}>
         <button
+          ref={buttonRef}
           type="button"
           className={`dynamic-report-filter-btn ${isFiltered ? 'filtered' : ''}`}
-          onClick={() => setOpenFilter(open ? null : id)}
+          onClick={() => {
+            updateMenuPosition();
+            setOpenFilter(open ? null : id);
+          }}
         >
           <span>{label}</span>
           <span className="dynamic-report-badge">{`${selectedCount}/${options.length}`}</span>
-          <span>▼</span>
+          <span>{open ? '▲' : '▼'}</span>
         </button>
 
         {open && (
-          <div className="dynamic-report-filter-menu">
+          <div
+            className="dynamic-report-filter-menu"
+            style={{
+              position: 'fixed',
+              top: `${menuPos.top}px`,
+              left: `${menuPos.left}px`,
+              width: `${menuPos.width}px`,
+              zIndex: 99999,
+            }}
+          >
             <div className="dynamic-report-filter-actions">
               <button
                 type="button"
