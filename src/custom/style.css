@@ -564,6 +564,9 @@ font-size: 18px;
 {
   margin-top: 18px !important;
 }
+    .professional-dashboard-body{
+      margin-top: 0px !important;
+    }
   .professional-dashboard-body{
 margin-top: 0 !important;
 }

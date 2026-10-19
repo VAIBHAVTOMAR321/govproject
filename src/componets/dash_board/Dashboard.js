@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Container, Spinner, Alert, Row, Col, Card, Form, Button, Modal, Dropdown, ButtonGroup, Accordion, Collapse } from "react-bootstrap";
 import Select from "react-select";
@@ -751,6 +751,8 @@ const SummaryMadUpMadTable = ({ data }) => {
     kendra: null,
   });
   const [openSummaryWiseFilter, setOpenSummaryWiseFilter] = useState(null);
+  const summaryWiseFilterButtonRefs = useRef({});
+  const [summaryWiseFilterMenuPosition, setSummaryWiseFilterMenuPosition] = useState(null);
   const [selectedSummaryPlanFilter, setSelectedSummaryPlanFilter] = useState(null);
   const [summaryWiseSummaryMode, setSummaryWiseSummaryMode] = useState('financial');
   // Only these three table columns can be shown/hidden from the column selector.
@@ -776,6 +778,73 @@ const SummaryMadUpMadTable = ({ data }) => {
   const current = viewConfig[summaryWiseView];
   const rowField = current.field;
   const rowLabel = current.label;
+
+  const getSummaryWiseFilterMenuPosition = useCallback(filterId => {
+    const button = summaryWiseFilterButtonRefs.current[filterId];
+    if (!button) return;
+
+    const rect = button.getBoundingClientRect();
+    const viewportPadding = 12;
+    const width = Math.min(
+      Math.max(rect.width, 260),
+      Math.max(window.innerWidth - viewportPadding * 2, 0)
+    );
+    const maxHeight = Math.min(360, Math.max(window.innerHeight - viewportPadding * 2, 0));
+    const left = Math.max(
+      viewportPadding,
+      Math.min(rect.left, window.innerWidth - width - viewportPadding)
+    );
+    const belowTop = rect.bottom + 6;
+    const top = belowTop + maxHeight <= window.innerHeight - viewportPadding
+      ? belowTop
+      : Math.max(viewportPadding, rect.top - maxHeight - 6);
+
+    return { top, left, width, maxHeight };
+  }, []);
+
+  const updateSummaryWiseFilterMenuPosition = useCallback(() => {
+    const position = getSummaryWiseFilterMenuPosition(openSummaryWiseFilter);
+    if (position) setSummaryWiseFilterMenuPosition(position);
+  }, [getSummaryWiseFilterMenuPosition, openSummaryWiseFilter]);
+
+  const toggleSummaryWiseFilterMenu = useCallback(filterId => {
+    if (openSummaryWiseFilter === filterId) {
+      setOpenSummaryWiseFilter(null);
+      setSummaryWiseFilterMenuPosition(null);
+      return;
+    }
+
+    setSummaryWiseFilterMenuPosition(getSummaryWiseFilterMenuPosition(filterId) || null);
+    setOpenSummaryWiseFilter(filterId);
+  }, [getSummaryWiseFilterMenuPosition, openSummaryWiseFilter]);
+
+  useEffect(() => {
+    if (!openSummaryWiseFilter) return undefined;
+
+    const handlePositionChange = () => updateSummaryWiseFilterMenuPosition();
+    handlePositionChange();
+    window.addEventListener('resize', handlePositionChange);
+    window.addEventListener('scroll', handlePositionChange, true);
+
+    return () => {
+      window.removeEventListener('resize', handlePositionChange);
+      window.removeEventListener('scroll', handlePositionChange, true);
+    };
+  }, [openSummaryWiseFilter, updateSummaryWiseFilterMenuPosition]);
+
+  const summaryWiseFilterMenuStyle = summaryWiseFilterMenuPosition
+    ? {
+        position: 'fixed',
+        top: `${summaryWiseFilterMenuPosition.top}px`,
+        left: `${summaryWiseFilterMenuPosition.left}px`,
+        width: `${summaryWiseFilterMenuPosition.width}px`,
+        '--summary-filter-menu-left': `${summaryWiseFilterMenuPosition.left}px`,
+        '--summary-filter-menu-width': `${summaryWiseFilterMenuPosition.width}px`,
+        maxHeight: `${summaryWiseFilterMenuPosition.maxHeight}px`,
+        overflowY: 'auto',
+        zIndex: 11000,
+      }
+    : null;
 
   // Five independent filters for this table.
   // Empty/null selection means ALL values for that filter.
@@ -1018,17 +1087,24 @@ const SummaryMadUpMadTable = ({ data }) => {
           return (
             <div key={field} className="dynamic-report-filter-wrap">
               <button
+                ref={element => {
+                  if (element) summaryWiseFilterButtonRefs.current[filterId] = element;
+                  else delete summaryWiseFilterButtonRefs.current[filterId];
+                }}
                 type="button"
                 className={`dynamic-report-filter-btn ${isFiltered ? 'filtered' : ''}`}
-                onClick={() => setOpenSummaryWiseFilter(isOpen ? null : filterId)}
+                onClick={() => toggleSummaryWiseFilterMenu(filterId)}
               >
                 <span>{label} फ़िल्टर</span>
                 <span className="dynamic-report-badge">{selectedCount}/{options.length}</span>
                 <span>{isOpen ? '▲' : '▼'}</span>
               </button>
 
-              {isOpen && (
-                <div className="dynamic-report-filter-menu">
+              {isOpen && summaryWiseFilterMenuPosition && typeof document !== 'undefined' && createPortal(
+                <div
+                  className="dynamic-report-filter-menu summary-mad-upmad-filter-menu"
+                  style={summaryWiseFilterMenuStyle}
+                >
                   <div className="dynamic-report-filter-actions">
                     <button type="button" onClick={() => setSummaryWiseFilters(prev => ({ ...prev, [field]: null }))}>सभी चुनें</button>
                     <button type="button" onClick={() => setSummaryWiseFilters(prev => ({ ...prev, [field]: [] }))}>कोई नहीं</button>
@@ -1060,7 +1136,8 @@ const SummaryMadUpMadTable = ({ data }) => {
                   <button type="button" className="dynamic-report-filter-close" onClick={() => setOpenSummaryWiseFilter(null)}>
                     बंद करें
                   </button>
-                </div>
+                </div>,
+                document.body
               )}
             </div>
           );
@@ -1068,17 +1145,24 @@ const SummaryMadUpMadTable = ({ data }) => {
 
         <div className="dynamic-report-filter-wrap">
           <button
+            ref={element => {
+              if (element) summaryWiseFilterButtonRefs.current['summary-mad-upmad-plan'] = element;
+              else delete summaryWiseFilterButtonRefs.current['summary-mad-upmad-plan'];
+            }}
             type="button"
             className={`dynamic-report-filter-btn ${selectedSummaryPlanFilter !== null && selectedSummaryPlanFilter !== undefined && selectedSummaryPlanFilter.length !== planList.length ? 'filtered' : ''}`}
-            onClick={() => setOpenSummaryWiseFilter(openSummaryWiseFilter === 'summary-mad-upmad-plan' ? null : 'summary-mad-upmad-plan')}
+            onClick={() => toggleSummaryWiseFilterMenu('summary-mad-upmad-plan')}
           >
             <span>योजना फ़िल्टर</span>
             <span className="dynamic-report-badge">{selectedPlans.length}/{planList.length}</span>
             <span>{openSummaryWiseFilter === 'summary-mad-upmad-plan' ? '▲' : '▼'}</span>
           </button>
 
-          {openSummaryWiseFilter === 'summary-mad-upmad-plan' && (
-            <div className="dynamic-report-filter-menu">
+          {openSummaryWiseFilter === 'summary-mad-upmad-plan' && summaryWiseFilterMenuPosition && typeof document !== 'undefined' && createPortal(
+            <div
+              className="dynamic-report-filter-menu summary-mad-upmad-filter-menu"
+              style={summaryWiseFilterMenuStyle}
+            >
               <div className="dynamic-report-filter-actions">
                 <button type="button" onClick={() => setSelectedSummaryPlanFilter(null)}>सभी चुनें</button>
                 <button type="button" onClick={() => setSelectedSummaryPlanFilter([])}>कोई नहीं</button>
@@ -1108,7 +1192,8 @@ const SummaryMadUpMadTable = ({ data }) => {
               <button type="button" className="dynamic-report-filter-close" onClick={() => setOpenSummaryWiseFilter(null)}>
                 बंद करें
               </button>
-            </div>
+            </div>,
+            document.body
           )}
         </div>
 

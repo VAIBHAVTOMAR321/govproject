@@ -1854,6 +1854,7 @@ f.modal-title {
 
   .dynamic-report-filterbar {
     gap: 6px;
+    overflow: visible;
   }
 
   .dynamic-report-filter-btn,
@@ -3847,6 +3848,16 @@ f.modal-title {
 
   .dynamic-report-filter-wrap {
     width: 100%;
+    overflow: visible;
+  }
+
+  .dynamic-report-filter-menu {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 6px);
+    width: min(280px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+    z-index: 10050;
   }
 
   .dynamic-report-filter-btn {
@@ -3874,5 +3885,13 @@ f.modal-title {
     left: 12px !important;
     right: 12px !important;
     max-width: calc(100vw - 24px) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .summary-mad-upmad-filter-menu {
+    left: var(--summary-filter-menu-left) !important;
+    right: auto !important;
+    width: var(--summary-filter-menu-width) !important;
   }
 }
