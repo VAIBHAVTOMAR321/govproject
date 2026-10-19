@@ -11,38 +11,7 @@ import "./DemandCenterwiseEntry.css";
 const BILLING_API_URL =
   "https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/";
 
-const customSelectStyles = {
-  control: (provided, state) => ({
-    ...provided,
-    borderColor: state.isFocused ? '#194e8b' : '#e0e0e0',
-    borderWidth: '1px',
-    borderRadius: '6px',
-    padding: '2px',
-    minHeight: '36px',
-    boxShadow: state.isFocused ? '0 0 0 2px rgba(25, 78, 139, 0.15)' : 'none',
-    '&:hover': { borderColor: '#194e8b' }
-  }),
-  valueContainer: provided => ({ ...provided, padding: '0 6px' }),
-  multiValue: provided => ({ ...provided, backgroundColor: '#194e8b', borderRadius: '3px', margin: '2px' }),
-  multiValueLabel: provided => ({ ...provided, color: '#ffffff', fontSize: '0.75rem', padding: '1px 4px' }),
-  multiValueRemove: provided => ({
-    ...provided,
-    color: '#ffffff',
-    padding: '0 2px',
-    '&:hover': { backgroundColor: '#0d3a6b', color: '#ffffff' }
-  }),
-  placeholder: provided => ({ ...provided, color: '#6c757d', fontSize: '0.8rem' }),
-  option: (provided, state) => ({
-    ...provided,
-    backgroundColor: state.isSelected ? '#194e8b' : state.isFocused ? '#e8f0f8' : '#ffffff',
-    color: state.isSelected ? '#ffffff' : '#333333',
-    fontSize: '0.8rem',
-    padding: '8px 12px',
-    '&:active': { backgroundColor: '#194e8b' }
-  }),
-  menu: provided => ({ ...provided, zIndex: 9999, boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)' }),
-  menuPortal: provided => ({ ...provided, zIndex: 9999 })
-};
+;
 
 const getFinancialYearDates = () => {
   const today = new Date();
@@ -183,7 +152,7 @@ const ReportTabDateFilter = ({
           {(appliedStartDate || appliedEndDate) && (
             <span
               className="badge bg-success d-flex align-items-center"
-              style={{ fontSize: '0.7rem' }}
+              className="report-date-range-badge"
             >
               <FaCalendarAlt className="me-1" />
               {appliedStartDate || 'N/A'} - {appliedEndDate || 'N/A'}
@@ -236,12 +205,7 @@ const SummaryFilteredTable = ({ data }) => {
       <div className="scheme-summary-mode-filter">
         <label
           htmlFor="top-summary-mode"
-          style={{
-            margin: 0,
-            color: '#194e8b',
-            fontSize: '12px',
-            fontWeight: 700,
-          }}
+          className="report-summary-mode-label"
         >
           सारांश देखें:
         </label>
@@ -262,7 +226,7 @@ const SummaryFilteredTable = ({ data }) => {
           : 'भौतिक पूर्ति सारांश'}
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
+      <div className="report-summary-table-scroll">
         <table className="report-top-summary-table">
           <thead>
             <tr>
@@ -1031,12 +995,7 @@ const DynamicReportTabs = ({ sourceData }) => {
       <div className="summary-mad-upmad-report-wrapper">
         <div
           className="dynamic-report-view-row professional-view-row"
-          style={{
-            marginBottom: '10px',
-            alignItems: 'center',
-            gap: '10px',
-            flexWrap: 'wrap',
-          }}
+          className="dynamic-report-view-row professional-view-row summary-wise-view-controls"
         >
           <label htmlFor="summary-mad-upmad-view-select">देखने का प्रकार</label>
           <select
@@ -1046,14 +1005,7 @@ const DynamicReportTabs = ({ sourceData }) => {
               const value = e.target.value;
               preserveScroll(() => setSummaryWiseView(value));
             }}
-            style={{
-              minWidth: '230px',
-              padding: '7px 10px',
-              borderRadius: '6px',
-              border: '1px solid #d9e1e8',
-              background: '#fff',
-              fontWeight: 600,
-            }}
+            className="summary-wise-view-select"
           >
             <option value="mad">मद के अनुसार</option>
             <option value="upmad">उप-मद के अनुसार</option>
@@ -1187,7 +1139,7 @@ const DynamicReportTabs = ({ sourceData }) => {
         <div className="dynamic-report-table-scroll matrix-scroll">
           <table
             className="dynamic-report-table matrix-table summary-mad-upmad-detail-table"
-            style={{ minWidth: '1100px' }}
+            className="report-matrix-wide-table"
           >
             <thead>
               <tr>
@@ -1200,7 +1152,7 @@ const DynamicReportTabs = ({ sourceData }) => {
                   <th
                     key={`yw-plan-${plan}`}
                     colSpan={summaryWisePlanColumnCount}
-                    style={{ textAlign: 'center' }}
+                    className="report-cell-centered"
                   >
                     {plan}
                   </th>
@@ -1209,7 +1161,7 @@ const DynamicReportTabs = ({ sourceData }) => {
                   <th
                     key="yw-total-plan"
                     colSpan={summaryWisePlanColumnCount}
-                    style={{ textAlign: 'center' }}
+                    className="report-cell-centered"
                   >
                     कुल योग
                   </th>
@@ -1597,7 +1549,7 @@ const DynamicReportTabs = ({ sourceData }) => {
                   ? { value: 'upmad', label: 'उप-मद के अनुसार' }
                   : { value: 'mad', label: 'मद के अनुसार' }}
                 onChange={option => setGroupBy(option?.value || 'mad')}
-                styles={customSelectStyles}
+                classNamePrefix="dcr-select"
                 menuPortalTarget={document.body}
               />
             </div>
@@ -1614,7 +1566,7 @@ const DynamicReportTabs = ({ sourceData }) => {
                 onChange={handleMadFilterChange}
                 placeholder="एक या अधिक मद चुनें..."
                 noOptionsMessage={() => 'कोई मद उपलब्ध नहीं'}
-                styles={customSelectStyles}
+                classNamePrefix="dcr-select"
                 menuPortalTarget={document.body}
               />
             </div>
@@ -1631,7 +1583,7 @@ const DynamicReportTabs = ({ sourceData }) => {
                 onChange={handleUpmadFilterChange}
                 placeholder="एक या अधिक उप-मद चुनें..."
                 noOptionsMessage={() => 'कोई उप-मद उपलब्ध नहीं'}
-                styles={customSelectStyles}
+                classNamePrefix="dcr-select"
                 menuPortalTarget={document.body}
               />
             </div>
@@ -1767,22 +1719,13 @@ const DynamicReportTabs = ({ sourceData }) => {
 
   return (
     <section
-      className="dynamic-report-section"
-      style={{
-        marginTop: "0",
-        paddingTop: "0"
-      }}
+      className="dynamic-report-section demand-report-responsive"
     >
       <div
         className="dynamic-report-heading"
-        style={{
-          marginTop: "0",
-          marginBottom: "8px",
-          paddingTop: "4px",
-          paddingBottom: "4px"
-        }}
+        className="dynamic-report-heading-compact"
       >
-        <h4 style={{ margin: 0 }}>
+        <h4 className="report-heading-title">
           <FaTable className="me-2" />विस्तृत रिपोर्ट
         </h4>
       </div>
@@ -1805,7 +1748,7 @@ const DynamicReportTabs = ({ sourceData }) => {
 
         {activeTab === 'saransh' && (
           <div className="dynamic-report-panel">
-            <h5 style={{ marginBottom: "6px" }}>सारांश — योजना-वार मद / उप-मद विवरण</h5>
+            <h5 className="report-subheading-compact">सारांश — योजना-वार मद / उप-मद विवरण</h5>
 
             {/* सारांश देखें + योजना-वार वित्तीय/भौतिक सारांश
                 must appear immediately below the main सारांश heading,
@@ -1837,7 +1780,7 @@ const DynamicReportTabs = ({ sourceData }) => {
 
         {activeTab === 'pragati' && (
           <div className="dynamic-report-panel">
-            <h5 style={{ marginBottom: "6px" }}>योजना प्रगति विवरण — अनुदान वहन योजना के अनुसार</h5>
+            <h5 className="report-subheading-compact">योजना प्रगति विवरण — अनुदान वहन योजना के अनुसार</h5>
 
             <ReportTabDateFilter
               startDate={progressStartDate}
@@ -1877,7 +1820,7 @@ const DynamicReportTabs = ({ sourceData }) => {
                 एक ब्लॉक चुनें — उसके केंद्रों का विवरण
                 यह मुख्य progress filters से स्वतंत्र है.
                ================================================================ */}
-            <div className="dynamic-report-subsection professional-report-subsection" style={{ marginTop: "30px" }}>
+            <div className="dynamic-report-subsection professional-report-subsection report-subsection-spaced-lg">
               <h6 className="dynamic-report-subtitle">
                एक ब्लॉक चुनें — उसके केंद्रों का विवरण (मूल प्रारूप जैसा)
               </h6>
@@ -1902,7 +1845,7 @@ const DynamicReportTabs = ({ sourceData }) => {
                 </select>
               </div>
 
-              <p className="dynamic-report-note" style={{ marginTop: "10px" }}>
+              <p className="dynamic-report-note report-note-spaced">
                 ब्लॉक के अनुसार:
               </p>
 
@@ -1922,7 +1865,7 @@ const DynamicReportTabs = ({ sourceData }) => {
                 एक विधानसभा चुनें — उसके केंद्रों का विवरण
                 यह मुख्य progress filters से स्वतंत्र है.
                ================================================================ */}
-            <div className="dynamic-report-subsection professional-report-subsection" style={{ marginTop: "26px" }}>
+            <div className="dynamic-report-subsection professional-report-subsection report-subsection-spaced">
               <h6 className="dynamic-report-subtitle">
                 विधानसभा के अनुसार केंद्रों का विवरण
               </h6>
@@ -1947,7 +1890,7 @@ const DynamicReportTabs = ({ sourceData }) => {
                 </select>
               </div>
 
-              <p className="dynamic-report-note" style={{ marginTop: "10px" }}>
+              <p className="dynamic-report-note report-note-spaced">
                 विधानसभा के अनुसार:
               </p>
 
@@ -2005,7 +1948,7 @@ const DynamicReportTabs = ({ sourceData }) => {
             {/* दूसरा 4401 table — मद / उप-मद के अनुसार, स्वतंत्र view और column state. */}
             <div
               className="dynamic-report-subsection professional-report-subsection"
-              style={{ marginTop: '26px' }}
+              className="report-subsection-spaced"
             >
               <h6 className="dynamic-report-subtitle">
                 4401 प्रगति मैट्रिक्स — मद / उप-मद के अनुसार
