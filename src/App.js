@@ -45,7 +45,7 @@ import GetViewLibrary from "./componets/GetViewLibrary";
 import CenterUdyanBill from "./componets/udhyan/CenterUdyanBill";
 import VetanMang from "./componets/VetanMang";
 import AdminVetanMang from "./componets/dash_board/AdminVetanMang";
-import AdminMonthAttendance from "./componets/dash_board/AdminMonthAttendance";
+
 import AdminKishanAavedan from "./componets/KishanBeej/AdminKishanAavedan";
 import KisanAvedan from "./componets/kishanavedan/KisanAvedan";
 import KisanAavedan from "./componets/kishanavedan/KisanAvedan";
@@ -197,14 +197,7 @@ function AppContent() {
       </ProtectedRoute>
     }
   />
-  <Route
-    path="/AdminMonthAttendance"
-    element={
-      <ProtectedRoute allowedLoginTypes={["admin"]}>
-        <AdminMonthAttendance />
-      </ProtectedRoute>
-    }
-  />
+
           <Route
             path="/Registration"
             element={
