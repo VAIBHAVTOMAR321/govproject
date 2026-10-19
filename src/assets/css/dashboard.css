@@ -1521,7 +1521,7 @@ f.modal-title {
   margin: 0;
   font-size: 1.05rem;
   font-weight: 700;
-  color: #fff;
+  color: #000 !important;
 }
 
 .dynamic-report-heading p {

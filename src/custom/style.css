@@ -553,6 +553,9 @@ font-weight: 700;
     font-size: 10px;
     padding: 15px;
 }
+.kisan-html-react-root .shell{
+margin-top: 70px !important;
+}
  
  .reset-heading h4 {
 font-size: 18px;
