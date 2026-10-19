@@ -1023,7 +1023,6 @@
 
   .kb-form-actions {
     align-items: flex-start;
-    flex-direction: column;
   }
 
   .kb-stage-controls > span {
@@ -1443,3 +1442,282 @@
     width: 100%;
   }
 }
+
+
+/* =========================================================
+   RESPONSIVE FIXES: tablet/mobile, scheme actions, table scroll
+   ========================================================= */
+
+/* Allow the stage title, Yojna buttons and Refresh to wrap cleanly. */
+.kb-stage-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-width: 0;
+}
+
+.kb-stage-copy {
+  flex: 1 1 220px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.kb-scheme-toolbar {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-left: auto;
+}
+
+.kb-stage-heading > .kb-secondary-button {
+  flex: 0 0 auto;
+  margin-left: 0;
+  white-space: nowrap;
+}
+
+.kb-scheme-toolbar button {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* No table column is fixed during horizontal scrolling. */
+.kb-table th:first-child {
+  left: auto !important;
+  z-index: 1;
+}
+
+.kb-table tbody td:first-child {
+  position: static !important;
+  left: auto !important;
+  z-index: auto !important;
+}
+
+.kb-table-scroll {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.kb-table {
+  width: max-content;
+  min-width: 100%;
+  table-layout: auto;
+}
+
+/* Keep all table headers together; only vertical header stickiness remains. */
+.kb-table th {
+  position: sticky;
+  top: 0;
+}
+
+/* Prevent wide content from forcing the entire page wider than the viewport. */
+.kb-app,
+.kb-main,
+.kb-card,
+.kb-stage-heading,
+.kb-panel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .kb-main {
+    padding: 20px 18px 28px;
+  }
+
+  .kb-stage-heading {
+    gap: 10px;
+  }
+
+  .kb-stage-copy {
+    flex-basis: 200px;
+  }
+
+  .kb-scheme-toolbar {
+    margin-left: 0;
+  }
+
+  .kb-form-grid,
+  .kb-manak-section .kb-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kb-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .kb-app {
+    margin-top: 0;
+    width: 100%;
+    overflow-x: clip;
+  }
+
+  .kb-header {
+    width: 100%;
+    min-height: auto;
+    padding: 14px 16px;
+  }
+
+  .kb-main {
+    width: 100%;
+    padding: 14px 10px 22px;
+  }
+
+  .kb-stage-heading {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    margin: 16px 0 13px;
+  }
+
+  .kb-stage-number {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .kb-stage-copy {
+    grid-column: 2;
+    grid-row: 1;
+    flex: none;
+    width: 100%;
+  }
+
+  .kb-stage-copy h2 {
+    font-size: 16px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .kb-scheme-toolbar {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    margin: 0;
+  }
+
+  .kb-scheme-toolbar button {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 9px;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .kb-stage-heading > .kb-secondary-button {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-height: 40px;
+    white-space: normal;
+  }
+
+  .kb-card {
+    padding: 13px 10px;
+  }
+
+  .kb-table-scroll {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 8px;
+  }
+
+  .kb-table {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .kb-table th {
+    min-width: 135px;
+    max-width: 190px;
+    padding: 9px;
+  }
+
+  .kb-table td {
+    min-width: 95px;
+    padding: 8px 9px;
+  }
+
+  .kb-wide-table .kb-table th {
+    min-width: 155px;
+  }
+
+  .kb-wide-table .kb-table th:first-child,
+  .kb-wide-table .kb-table td:first-child,
+  .kb-allocation-table .kb-table th:first-child,
+  .kb-allocation-table .kb-table td:first-child {
+    min-width: 135px;
+    max-width: 190px;
+  }
+
+  .kb-form-grid,
+  .kb-manak-section .kb-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kb-form-actions,
+  .kb-stage-controls {
+    flex-wrap: wrap;
+  }
+
+  .kb-form-actions > button,
+  .kb-stage-controls > button {
+    flex: 1 1 140px;
+  }
+
+  .kb-footer {
+    flex-wrap: wrap;
+    padding: 13px 12px;
+  }
+
+  .kb-modal-backdrop {
+    align-items: flex-start;
+    overflow-y: auto;
+    padding: 10px;
+  }
+
+  .kb-scheme-modal {
+    width: 100%;
+    max-height: calc(100dvh - 20px);
+    margin: auto 0;
+    padding: 14px;
+  }
+
+  .kb-scheme-modal .kb-card-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .kb-scheme-actions {
+    flex-wrap: wrap;
+  }
+
+  .kb-scheme-actions button {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 360px) {
+  .kb-scheme-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kb-intro-stats > div {
+    padding: 8px 6px;
+  }
+
+  .kb-intro-stats strong {
+    font-size: 17px;
+  }
+}
+
