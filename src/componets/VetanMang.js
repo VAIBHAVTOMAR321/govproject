@@ -11,7 +11,7 @@ import {
   Spinner,
 } from 'react-bootstrap';
 import "bootstrap/dist/css/bootstrap.min.css";
-import "../assets/css/vetan.css";
+import "./vetan-mang.css";
 
 const API_URL = 'https://mahadevaaya.com/govbillingsystem/backend/api/salary-attendance-reports/';
 
@@ -885,13 +885,10 @@ function VetanMang() {
   };
 
   return (
-    <Container fluid className="px-3" style={{ paddingTop: '89px' }}>
+    <Container fluid className="vetan-page px-3">
       <Row className="mb-3">
         <Col>
-          <div
-            className="p-3 rounded shadow-sm"
-            style={{ backgroundColor: '#1a5276', color: 'white' }}
-          >
+          <div className="vetan-page-header p-3 rounded shadow-sm">
             <div className="d-flex justify-content-between align-items-center">
               <div>
                 <h5 className="mb-0 fw-bold">वेतन मांग पत्र एवं उपस्थिति सूचना</h5>
@@ -921,8 +918,8 @@ function VetanMang() {
       )}
 
       {showFormModal && (
-        <div className="vm-modal-overlay vm-add-report-overlay">
-          <div className="vm-modal vm-add-report-modal">
+        <div className="vm-modal-overlay vm-add-report-overlay vetan-modal-overlay">
+          <div className="vm-modal vm-add-report-modal vetan-modal">
             <div className="vm-modal-header">
               <h2>{editingReportId ? 'रिपोर्ट संपादित करें (Edit Report)' : 'नई रिपोर्ट दर्ज करें (Add New Report)'}</h2>
               <button type="button" className="vm-modal-close" onClick={closeAddModal}>×</button>
@@ -988,13 +985,13 @@ function VetanMang() {
                 </div>
               </div>
 
-              <div className="vm-table-container">
+              <div className="vm-table-container vetan-editor-table-container">
                 <div className="vm-table-header-bar">
                   <h3>कर्मचारी विवरण (Employee Details)</h3>
                   <button type="button" className="vm-btn vm-btn-secondary" onClick={addRow}>+ पंक्ति जोड़ें (Add Row)</button>
                 </div>
 
-                <div className="vm-table-scroll">
+                <div className="vm-table-scroll vetan-editor-table-scroll">
                   <table className="vm-data-table">
                     <thead>
                       <tr>
@@ -1021,7 +1018,7 @@ function VetanMang() {
                                       type="text"
                                       value={cell}
                                       readOnly
-                                      style={{ backgroundColor: '#f8f9fa', fontWeight: 'bold' }}
+                                      className="vetan-readonly-number"
                                     />
                                   </td>
                                 );
@@ -1046,7 +1043,7 @@ function VetanMang() {
                                       type="text"
                                       value={cell}
                                       readOnly
-                                      style={{ backgroundColor: '#e9ecef' }}
+                                      className="vetan-readonly-calculated"
                                     />
                                   </td>
                                 );
@@ -1077,7 +1074,7 @@ function VetanMang() {
                 </div>
               </div>
 
-              <div className="vm-form-actions">
+              <div className="vm-form-actions vetan-form-actions">
                 <button type="button" className="vm-btn vm-btn-cancel" onClick={closeAddModal}>
                   रद्द करें
                 </button>
@@ -1094,10 +1091,7 @@ function VetanMang() {
       <Row>
         <Col>
           <Card className="border-0 shadow-sm">
-            <Card.Header
-              className="py-2"
-              style={{ backgroundColor: '#0d9488', color: 'white' }}
-            >
+            <Card.Header className="vetan-saved-header py-2">
               <div className="d-flex justify-content-between align-items-center">
                 <div>
                   <span className="fw-bold">सहेजी गई रिपोर्ट्स (Saved Reports)</span>
@@ -1128,7 +1122,7 @@ function VetanMang() {
             <Card.Body className="p-0">
               {isLoading ? (
                 <div className="text-center py-4">
-                  <Spinner animation="border" style={{ color: '#0d9488' }} />
+                  <Spinner animation="border" className="vetan-spinner" />
                 </div>
               ) : reports.length === 0 ? (
                 <div className="text-center py-4 text-muted">
@@ -1139,13 +1133,13 @@ function VetanMang() {
                   <Table bordered striped hover responsive className="mb-0 table-sm">
                     <thead className="table-light">
                       <tr>
-                        <th className="text-center" style={{ width: '50px' }}>क्र.</th>
+                        <th className="text-center vetan-number-column">क्र.</th>
                         <th>केंद्र</th>
                         <th>माह</th>
                         <th>वित्तीय वर्ष</th>
                         <th>रिपोर्ट दिनांक</th>
                         {TABLE_HEADERS.map((header, idx) => <th key={idx}>{header}</th>)}
-                        <th className="text-center" style={{ width: '120px' }}>कार्य</th>
+                        <th className="text-center vetan-actions-column">कार्य</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1200,8 +1194,8 @@ function VetanMang() {
 
       {/* Preview Modal */}
       {showPreviewModal && previewReport && (
-        <div className="vm-modal-overlay">
-          <div className="vm-modal">
+        <div className="vm-modal-overlay vetan-modal-overlay">
+          <div className="vm-modal vetan-modal">
             <div className="vm-modal-header">
               <h2>रिपोर्ट प्रिव्यू - {previewReport.center_name}</h2>
               <button type="button" className="vm-modal-close" onClick={closePreviewModal}>×</button>
@@ -1224,23 +1218,23 @@ function VetanMang() {
                   <span><strong>रिपोर्ट दिनांक:</strong> {previewReport.report_date}</span>
                 </div>
               </div>
-              <div className="vm-preview-table-wrapper">
+              <div className="vm-preview-table-wrapper vetan-preview-table-wrapper">
                 <table className="vm-preview-table">
                   <colgroup>
-                    <col style={{ width: '3%' }} />
-                    <col style={{ width: '7%' }} />
-                    <col style={{ width: '7%' }} />
-                    <col style={{ width: '4%' }} />
-                    <col style={{ width: '6%' }} />
-                    <col style={{ width: '6%' }} />
-                    <col style={{ width: '6%' }} />
-                    <col style={{ width: '6%' }} />
-                    <col style={{ width: '5%' }} />
-                    <col style={{ width: '5%' }} />
-                    <col style={{ width: '4%' }} />
-                    <col style={{ width: '4%' }} />
-                    <col style={{ width: '7%' }} />
-                    <col style={{ width: '30%' }} />
+                    <col className="vetan-preview-col-1" />
+                    <col className="vetan-preview-col-2" />
+                    <col className="vetan-preview-col-2" />
+                    <col className="vetan-preview-col-4" />
+                    <col className="vetan-preview-col-5" />
+                    <col className="vetan-preview-col-5" />
+                    <col className="vetan-preview-col-5" />
+                    <col className="vetan-preview-col-5" />
+                    <col className="vetan-preview-col-9" />
+                    <col className="vetan-preview-col-9" />
+                    <col className="vetan-preview-col-4" />
+                    <col className="vetan-preview-col-4" />
+                    <col className="vetan-preview-col-2" />
+                    <col className="vetan-preview-col-14" />
                   </colgroup>
                   <thead>
                     <tr>
@@ -1257,7 +1251,7 @@ function VetanMang() {
                 </table>
               </div>
             </div>
-            <div className="vm-form-actions">
+            <div className="vm-form-actions vetan-form-actions">
               <button type="button" className="vm-btn vm-btn-cancel" onClick={closePreviewModal}>
                 बंद करें
               </button>

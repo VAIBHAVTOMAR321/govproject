@@ -1226,7 +1226,7 @@
 @media (max-width: 768px) {
   .gvl-container {
     padding: 14px;
-    margin-top: 54px;
+    margin-top: 58px;
   }
 
   .gvl-header h1 {
@@ -1260,6 +1260,7 @@
 @media (max-width: 520px) {
   .gvl-container {
     padding: 11px;
+    margin-top: 70px;
   }
 
   .gvl-header {
