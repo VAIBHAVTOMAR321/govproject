@@ -560,6 +560,13 @@ font-size: 18px;
 .dash-board{
   background-color:#c9d4e7;
 }
+.month-report-container
+{
+  margin-top: 18px !important;
+}
+  .professional-dashboard-body{
+margin-top: 0 !important;
+}
 /* Print-safe: keep selection visible in print */
 @media print {
   .compact-detail-item {
