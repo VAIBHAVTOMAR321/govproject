@@ -704,7 +704,7 @@ const AdminVetanMang = () => {
                                 <FaCalendarAlt className="me-1" />
                                 {report.report_date ? new Date(report.report_date).toLocaleDateString('hi-IN') : '-'}
                               </td>
-                              <td style={{ maxWidth: '300px', whiteSpace: 'normal' }}>{report.subject}</td>
+                              <td><div className="vetan-mang-subject">{report.subject}</div></td>
                               <td>
                                 <div className="d-flex gap-2">
                                   <Button
