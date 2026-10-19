@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import Container from "react-bootstrap/Container";
 import Nav from "react-bootstrap/Nav";
 import Navbar from "react-bootstrap/Navbar";
@@ -14,17 +14,24 @@ const DemandNavigation = () => {
   const location = useLocation();
   const { logout } = useAuth();
   const { clearCenter } = useCenter();
+  const [expanded, setExpanded] = useState(false);
 
   const handleLogout = () => {
     clearCenter();
     logout();
     navigate("/", { replace: true });
+    setExpanded(false);
+  };
+
+  const go = (path) => {
+    navigate(path);
+    setExpanded(false);
   };
 
   const isActive = (path) => location.pathname === path;
 
   return (
-    <Navbar expand="lg" className="bg-body-tertiary Dash-header" fixed="top">
+    <Navbar expand="lg" className="bg-body-tertiary Dash-header" fixed="top" expanded={expanded} onToggle={setExpanded}>
       <Container fluid>
         <Navbar.Brand href="#home">
           <div className="dash-img d-flex justify-content-between mx-2">
@@ -38,7 +45,7 @@ const DemandNavigation = () => {
             {/* Standalone Link */}
             <Nav.Link
               active={isActive("/DemandGenerate")}
-              onClick={() => navigate("/DemandGenerate")}
+              onClick={() => go("/DemandGenerate")}
               style={{
                 fontWeight: isActive("/DemandGenerate") ? "bold" : "normal",
               }}
@@ -60,7 +67,7 @@ const DemandNavigation = () => {
             >
               <NavDropdown.Item
                 active={isActive("/DemandGenerate/CenterwiseEntry")}
-                onClick={() => navigate("/DemandGenerate/CenterwiseEntry")}
+                onClick={() => go("/DemandGenerate/CenterwiseEntry")}
                 style={{
                   fontWeight: isActive("/DemandGenerate/CenterwiseEntry")
                     ? "bold"
@@ -71,7 +78,7 @@ const DemandNavigation = () => {
               </NavDropdown.Item>
               <NavDropdown.Item
                 active={isActive("/DemandGenerate/KrishiwiseEntry")}
-                onClick={() => navigate("/DemandGenerate/KrishiwiseEntry")}
+                onClick={() => go("/DemandGenerate/KrishiwiseEntry")}
                 style={{
                   fontWeight: isActive("/DemandGenerate/KrishiwiseEntry")
                     ? "bold"
@@ -98,7 +105,7 @@ const DemandNavigation = () => {
             >
                <NavDropdown.Item
                 active={isActive("/GetViewLibrary")}
-                onClick={() => navigate("/VirtanKishanBeej")}
+                onClick={() => go("/VirtanKishanBeej")}
                 style={{
                   fontWeight: isActive("/VirtanKishanBeej") ? "bold" : "normal",
                 }}
@@ -107,7 +114,7 @@ const DemandNavigation = () => {
               </NavDropdown.Item>
               <NavDropdown.Item
                 active={isActive("/CenterUdyanBill")}
-                onClick={() => navigate("/CenterUdyanBill")}
+                onClick={() => go("/CenterUdyanBill")}
                 style={{
                   fontWeight: isActive("/CenterUdyanBill") ? "bold" : "normal",
                 }}
@@ -116,7 +123,7 @@ const DemandNavigation = () => {
               </NavDropdown.Item>
               <NavDropdown.Item
                 active={isActive("/GetViewLibrary")}
-                onClick={() => navigate("/GetViewLibrary")}
+                onClick={() => go("/GetViewLibrary")}
                 style={{
                   fontWeight: isActive("/GetViewLibrary") ? "bold" : "normal",
                 }}
@@ -126,7 +133,7 @@ const DemandNavigation = () => {
             
               <NavDropdown.Item
                 active={isActive("/VetanMang")}
-                onClick={() => navigate("/VetanMang")}
+                onClick={() => go("/VetanMang")}
                 style={{
                   fontWeight: isActive("/VetanMang") ? "bold" : "normal",
                 }}
@@ -149,7 +156,7 @@ const DemandNavigation = () => {
             >
               <NavDropdown.Item
                 active={isActive("/KisanAvedan")}
-                onClick={() => navigate("/KisanAvedan")}
+                onClick={() => go("/KisanAvedan")}
                 style={{
                   fontWeight: isActive("/KisanAvedan") ? "bold" : "normal",
                 }}
@@ -158,7 +165,7 @@ const DemandNavigation = () => {
               </NavDropdown.Item>
               <NavDropdown.Item
                 active={isActive("/KisanAavedanPortal")}
-                onClick={() => navigate("/KisanAavedanPortal")}
+                onClick={() => go("/KisanAavedanPortal")}
                 style={{
                   fontWeight: isActive("/KisanAavedanPortal") ? "bold" : "normal",
                 }}
@@ -167,7 +174,7 @@ const DemandNavigation = () => {
               </NavDropdown.Item>
                 <NavDropdown.Item
                 active={isActive("/DragfruitsAndKiwi")}
-                onClick={() => navigate("/DragfruitsAndKiwi")}
+                onClick={() => go("/DragfruitsAndKiwi")}
                 style={{
                   fontWeight: isActive("/DragfruitsAndKiwi") ? "bold" : "normal",
                 }}
@@ -176,7 +183,7 @@ const DemandNavigation = () => {
               </NavDropdown.Item>
                 <NavDropdown.Item
                 active={isActive("/KiwiFruits")}
-                onClick={() => navigate("/KiwiFruits")}
+                onClick={() => go("/KiwiFruits")}
                 style={{
                   fontWeight: isActive("/KiwiFruits") ? "bold" : "normal",
                 }}
