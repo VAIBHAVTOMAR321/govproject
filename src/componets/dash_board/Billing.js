@@ -30,6 +30,12 @@ const UPDATE_API_URL =
 const PAGE_NO_API_URL_BASE =
   "https://mahadevaaya.com/govbillingsystem/backend/api/billing-report-component-pageno/";
 
+// Schemes that use selling rate for bill calculation
+const SELLING_RATE_SCHEMES = [
+  "4401 बिक्री हेतु",
+  "मुख्यमंत्री एकीकृत विकास योजना",
+];
+
 // Custom styles for react-select
 const customSelectStyles = {
   control: (baseStyles, state) => ({
@@ -481,7 +487,14 @@ const Billing = () => {
   const calculateQuantityLeft = (allocated, updated, cut) => ((parseFloat(allocated) || 0) - (parseFloat(updated) || 0) - (parseFloat(cut) || 0)).toFixed(2);
   const calculateAmount = (quantity, rate) => ((parseFloat(quantity) || 0) * (parseFloat(rate) || 0)).toFixed(2);
   const calculateAllocatedAmount = (allocatedQuantity, rate) => ((parseFloat(allocatedQuantity) || 0) * (parseFloat(rate) || 0)).toFixed(2);
-  const calculateTotalBill = (cutQuantity, rate) => ((parseFloat(cutQuantity) || 0) * (parseFloat(rate) || 0)).toFixed(2);
+  const calculateTotalBill = (item) => {
+    const schemeName = item?.scheme_name || "";
+    const billRate = SELLING_RATE_SCHEMES.includes(schemeName)
+      ? item?.farmer_selling_rate
+      : item?.farmer_subsidy_rate;
+    const cutQuantity = item?.cut_quantity || 0;
+    return ((parseFloat(cutQuantity) || 0) * (parseFloat(billRate) || 0)).toFixed(2);
+  };
 
   // Fetch previously saved Page Numbers when opening the modal
   const handleOpenPageNoModal = async () => {
@@ -831,7 +844,7 @@ const Billing = () => {
                                         const soldAmount = calculateAmount(item.updated_quantity, item.rate);
                                         const quantityLeft = calculateQuantityLeft(item.allocated_quantity, item.updated_quantity, item.cut_quantity);
                                         const maxCut = (parseFloat(item.allocated_quantity) || 0) - (parseFloat(item.updated_quantity) || 0);
-                                        const totalBill = calculateTotalBill(item.cut_quantity, item.rate);
+                                        const totalBill = calculateTotalBill(item);
                                         return (
                                           <tr key={item.id}>
                                             <td data-label={translations.sno}>{indexOfFirstItem + index + 1}</td>
