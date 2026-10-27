@@ -2330,6 +2330,9 @@
     padding: 0 !important;
     background: none !important;
   }
+  .kisan-html-react-root .view.print-target .aff-preview-hide-date {
+    display: none !important;
+  }
   /* असली A4 शीट। यहाँ `width: 186mm` नहीं लिखा — क्योंकि 186mm केवल तब
      सही है जब ब्राउज़र `@page { margin:12mm }` ठीक से माने। उपयोगकर्ता के
      "Custom margins" / "Minimum margins" चुनने पर printable area छोटा

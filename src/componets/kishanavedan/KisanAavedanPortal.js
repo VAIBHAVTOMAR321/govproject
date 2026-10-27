@@ -1049,7 +1049,7 @@ export default function KisanAavedanPortal() {
                 <div>हस्ताक्षर : ________________</div>
                 <div>आवेदक से संबंध : ${rRel}</div>
                 <div>आधार कार्ड संख्या : ${rAadhaar}</div>
-                <div>दिनांक : ________________</div>
+                <div class="aff-preview-hide-date">दिनांक : ________________</div>
               </div>
             </div>`;
             })
@@ -1105,7 +1105,7 @@ export default function KisanAavedanPortal() {
               <div>हस्ताक्षर : ________________</div>
               <div>मो० : ${mob}</div>
               <div>स्थान : ${esc(centerLine())}</div>
-              <div>दिनांक : ${date}</div>
+              <div class="aff-preview-hide-date">दिनांक : ${date}</div>
             </div>
           </div>
           ${
@@ -1119,7 +1119,7 @@ export default function KisanAavedanPortal() {
               <div>हस्ताक्षर : ________________</div>
               <div>मो० : ${mob}</div>
               <div>स्थान : ${esc(centerLine())}</div>
-              <div>दिनांक : ${date}</div>
+              <div class="aff-preview-hide-date">दिनांक : ${date}</div>
             </div>
           </div>`
               : ""
