@@ -2029,6 +2029,9 @@
   .drag-fruits-root .print-doc .signature-grid > div:last-child {
     text-align: right;
   }
+  .drag-fruits-root .print-doc .hide-date-in-print {
+    display: none !important;
+  }
   .drag-fruits-root .print-doc .application-sign-off {
     break-inside: avoid-page;
     page-break-inside: avoid;

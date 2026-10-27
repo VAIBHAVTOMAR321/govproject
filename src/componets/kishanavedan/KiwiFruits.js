@@ -796,7 +796,7 @@ const KiwiFruits = () => {
     const affHtml = `<article class="aff-doc"><div class="doc-title">${esc(m.name)}</div><div class="doc-subtitle">लाभार्थी स्व-घोषणा एवं शपथ-पत्र — ${coMode ? "स्वयं + सह-खातेदार" : "केवल स्वयं की भूमि"}</div>
       <p>मैं श्री/श्रीमती ${esc(form.name)}, पुत्र/पुत्री/पत्नी श्री ${esc(form.father)}, निवासी ${esc(address)}, उत्तराखण्ड, सत्यनिष्ठा से शपथपूर्वक निम्नलिखित घोषणा ${genderText("करता", "करती", "करता/करती")} हूँ कि—</p>
       <ol>${clauses.map((clause) => `<li>${clause}</li>`).join("")}</ol><h3>भूमि एवं ${coMode ? "सह-खातेदार " : ""}विवरण</h3>${affidavitLandTable}
-      <div class="sig"><div>स्थान: ____________________<br>दिनांक: ____________________</div><div>शपथकर्ता/कृषक<br><b>${esc(form.name)}</b><br>हस्ताक्षर/अंगूठा ____________________</div></div>
+      <div class="sig"><div>स्थान: ____________________<br><span class="hide-date-in-print">दिनांक: ____________________</span></div><div>शपथकर्ता/कृषक<br><b>${esc(form.name)}</b><br>हस्ताक्षर/अंगूठा ____________________</div></div>
       <p class="aff-note">स्टाम्प/नोटरी/शपथ आयुक्त संबंधी औपचारिकता संबंधित विभाग/लागू नियम के अनुसार पूरी की जाए।</p></article>`;
 
     const consentHtml = co.length
@@ -816,7 +816,7 @@ const KiwiFruits = () => {
       <li>मुझे योजना, प्रस्तावित कार्य तथा पात्रता के अनुसार राजसहायता के आवेदक के सत्यापित बैंक खाते में DBT के माध्यम से प्राप्त होने की जानकारी है और मुझे इस पर कोई आपत्ति नहीं है।</li>
       <li>मैं यह सहमति अपनी स्वतंत्र इच्छा से ${coGender("देता", "देती", "देता/देती")} हूँ और प्रस्तावित भूमि के उपयोग के संबंध में जानबूझकर अनावश्यक बाधा उत्पन्न नहीं ${coGender("करूँगा", "करूँगी", "करूँगा/करूँगी")}।</li></ol>
       <h3>सह-खातेदार का विवरण</h3><table><tbody><tr><th>नाम</th><td>${esc(r.name)}</td></tr><tr><th>पिता/पति</th><td>${esc(r.father)}</td></tr><tr><th>आवेदक से संबंध</th><td><b>${esc(r.rel === "सहखातेदार" ? "सह-खातेदार" : r.rel)}</b></td></tr><tr><th>लिंग</th><td>${esc(r.gender || "पुरुष")}</td></tr><tr><th>ग्राम</th><td>${esc(r.village || form.village)}</td></tr><tr><th>खाता संख्या</th><td>${esc(r.khata)}</td></tr><tr><th>खसरा/गाटा संख्या</th><td>${esc(r.khasra)}</td></tr><tr><th>सम्मिलित भूमि</th><td>${num(r.area).toFixed(4)} हे०</td></tr><tr><th>मोबाइल</th><td>________________</td></tr><tr><th>पहचान दस्तावेज</th><td>________________</td></tr></tbody></table>
-      <div class="sig"><div>स्थान: ____________________<br>दिनांक: ____________________</div><div>सह-खातेदार<br><b>${esc(r.name)}</b><br>हस्ताक्षर/अंगूठा ____________________</div></div></article>`;
+      <div class="sig"><div>स्थान: ____________________<br><span class="hide-date-in-print">दिनांक: ____________________</span></div><div>सह-खातेदार<br><b>${esc(r.name)}</b><br>हस्ताक्षर/अंगूठा ____________________</div></div></article>`;
           })
           .join("")
       : `<div class="aff-doc"><div class="doc-title">सह-खातेदार का सहमति एवं अनापत्ति पत्र</div><p>इस आवेदन में कोई सह-खातेदार दर्ज नहीं है।</p></div>`;

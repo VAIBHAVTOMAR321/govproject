@@ -3447,7 +3447,9 @@ const DragfruitsAndKiwi = () => {
                       <div>
                         स्थान: ____________________
                         <br />
-                        दिनांक: ____________________
+                        <span className="hide-date-in-print">
+                          दिनांक: ____________________
+                        </span>
                       </div>
                       <div>
                         शपथकर्ता/कृषक
@@ -3580,7 +3582,9 @@ const DragfruitsAndKiwi = () => {
                           <div>
                             स्थान: ____________________
                             <br />
-                            दिनांक: ____________________
+                            <span className="hide-date-in-print">
+                              दिनांक: ____________________
+                            </span>
                           </div>
                           <div>
                             सह-खातेदार

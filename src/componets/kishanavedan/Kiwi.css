@@ -1850,6 +1850,9 @@
     break-inside: avoid;
     page-break-inside: avoid;
   }
+  .kiwi-root .print-doc .hide-date-in-print {
+    display: none !important;
+  }
 
   .kiwi-root .print-doc h2,
   .kiwi-root .print-doc h3,
