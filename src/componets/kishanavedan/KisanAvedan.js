@@ -651,7 +651,7 @@ export default function KisanAavedan() {
             + '<p><b>10.</b> कोई जानकारी असत्य या भ्रामक पाए जाने पर विभाग को आवेदन / राजसहायता निरस्त करने तथा प्राप्त राशि की वसूली करने का अधिकार होगा।</p>'
             + '<p><b>11.</b> मैं योजना की निर्धारित शर्तों एवं विभागीय दिशा-निर्देशों से सहमत हूँ।</p>'
             + '<p>मैं यह शपथ-पत्र पूर्ण होश-हवास में, बिना किसी दबाव, प्रलोभन अथवा भय के, अपनी स्वेच्छा से सत्यनिष्ठा के साथ दे रहा / रही हूँ।</p>'
-            + '<div style="margin-top:22px">स्थान : <b>' + place + '</b><br>दिनांक : <b>' + date + '</b></div>'
+            + '<div style="margin-top:22px">स्थान : <b>' + place + '</b><br><span class="aff-preview-hide-date">दिनांक : <b>' + date + '</b></span></div>'
             + '<div style="margin-top:28px;text-align:right">शपथकर्ता के हस्ताक्षर : ____________________<br><br>'
             + 'नाम : <b>' + name + '</b><br><br>मोबाइल नं. : <b>' + mob + '</b></div>'
             + '</div>';
@@ -1142,6 +1142,9 @@ export default function KisanAavedan() {
           sheet.className = "pv-sheet";
           const clone = target.cloneNode(true);
           clone.classList.add("on");
+          if(activeView === "affidavit"){
+            clone.querySelectorAll(".aff-preview-hide-date").forEach(el => el.remove());
+          }
           const liveFields = target.querySelectorAll("input,select,textarea");
           const cloneFields = clone.querySelectorAll("input,select,textarea");
           for(let i=0; i<liveFields.length; i++){

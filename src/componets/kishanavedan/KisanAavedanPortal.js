@@ -990,7 +990,7 @@ export default function KisanAavedanPortal() {
                 <div>हस्ताक्षर : ________________</div>
                 <div>मो० : ${mob}</div>
                 <div>स्थान : ${esc(centerLine())}</div>
-                <div>दिनांक : ${date}</div>
+                <div class="aff-preview-hide-date">दिनांक : ${date}</div>
               </div>
             </div>`;
           }
@@ -3102,6 +3102,9 @@ export default function KisanAavedanPortal() {
           sheet.className = "pv-sheet pv-" + cur;
           const clone = target.cloneNode(true);
           clone.classList.add("on");
+          clone
+            .querySelectorAll(".aff-preview-hide-date")
+            .forEach((dateField) => dateField.remove());
           const liveFields = target.querySelectorAll("input,select,textarea");
           const cloneFields = clone.querySelectorAll("input,select,textarea");
           for (let i = 0; i < liveFields.length; i++) {
