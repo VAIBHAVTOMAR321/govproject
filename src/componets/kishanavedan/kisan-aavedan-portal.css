@@ -1767,6 +1767,30 @@
 .kisan-html-react-root .summaryTbl tr.hi td.sv {
   font-size: 21px;
 }
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .appdoc .expense-bill-table th,
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .appdoc .expense-bill-table td {
+  font-size: 11px !important;
+  padding: 3px 5px !important;
+}
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .appdoc .expense-bill-table thead th:first-child,
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .appdoc .expense-bill-table tbody td:first-child {
+  text-align: center !important;
+}
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .appdoc .expense-bill-table thead th:last-child,
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .appdoc .expense-bill-table tbody td:last-child,
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .appdoc .expense-bill-table tfoot th:last-child,
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .appdoc .expense-bill-table tfoot th:first-child {
+  text-align: right !important;
+}
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .appdoc .summaryTbl td {
+  font-size: 11px !important;
+  line-height: 1.45;
+  padding: 3px 5px !important;
+}
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .appdoc .summaryTbl td.sv.big,
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .appdoc .summaryTbl tr.hi td.sv {
+  font-size: 11px !important;
+}
 .kisan-html-react-root .appok {
   border-left: 4px solid var(--seal) !important;
   background: #eff6ff !important;

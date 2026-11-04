@@ -671,7 +671,7 @@ export default function KisanAavedan() {
           const stdCost = num(S.norm.vStdCost) || 33333;
           const rate = num(S.norm.vRate) || 75;
           const expRows = expenseBillRows();
-          let tbl = `<table><colgroup><col style="width:10%"><col style="width:58%"><col class="num" style="width:32%"></colgroup><thead><tr><th style="width:10%">क्र०</th><th style="width:58%">कार्य / सामग्री का विवरण</th><th class="num" style="width:32%">बिल राशि (₹)</th></tr></thead><tbody>`;
+          let tbl = `<table class="expense-bill-table"><colgroup><col style="width:10%"><col style="width:58%"><col style="width:32%"></colgroup><thead><tr><th style="width:10%">क्र०</th><th style="width:58%">कार्य / सामग्री का विवरण</th><th class="num" style="width:32%">बिल राशि (₹)</th></tr></thead><tbody>`;
           if(expRows.length){
             expRows.forEach((r,i)=>{
               tbl += `<tr><td style="text-align:center">${i+1}</td><td>${esc(r.item||"…………")}</td><td class="num" id="r${i}a"></td></tr>`;
