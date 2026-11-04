@@ -2668,3 +2668,299 @@
     padding: 8px;
   }
 }
+/* =========================================
+   STRUCTURED PRINT PREVIEW
+========================================= */
+
+.pv-sheet {
+    background: #fff;
+    padding: 25px;
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    color: #222;
+}
+
+.pv-sheet .appdoc {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Structured field tables */
+
+.pv-sheet .preview-fields-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    margin: 12px 0 20px;
+    font-size: 13px;
+}
+
+.pv-sheet .preview-fields-table td {
+    border: 1px solid #b8c2cc;
+    padding: 9px 10px;
+    vertical-align: middle;
+    overflow-wrap: anywhere;
+}
+
+.pv-sheet .preview-fields-table .preview-label {
+    width: 20%;
+    background: #f0f4f8;
+    font-weight: 600;
+    color: #263849;
+}
+
+.pv-sheet .preview-fields-table .preview-value {
+    width: 30%;
+    background: #fff;
+    min-height: 20px;
+}
+
+/* Existing tables */
+
+.pv-sheet table:not(.preview-fields-table) {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    margin: 12px 0 18px;
+}
+
+.pv-sheet table th,
+.pv-sheet table td {
+    border: 1px solid #aeb8c2;
+    padding: 8px 9px;
+    vertical-align: middle;
+    overflow-wrap: anywhere;
+}
+
+.pv-sheet table th {
+    background: #edf2f7;
+    font-weight: 700;
+    text-align: center;
+}
+
+/* Section headings */
+
+.pv-sheet .st {
+    background: #edf3f7;
+    border-left: 4px solid #287c70;
+    padding: 9px 12px;
+    margin: 20px 0 10px;
+    font-weight: 700;
+    page-break-after: avoid;
+}
+
+/* Input values in preview */
+
+.pv-sheet .preview-value-text {
+    display: block;
+    min-height: 18px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    line-height: 1.6;
+}
+
+/* Remove editing controls */
+
+.pv-sheet .noprint,
+.pv-sheet button,
+.pv-sheet .rm,
+.pv-sheet .addrow,
+.pv-sheet .save-bar {
+    display: none !important;
+}
+
+/* Declaration and affidavit */
+
+.pv-sheet .declaration-box,
+.pv-sheet .report-box {
+    border: 1px solid #b8c2cc;
+    padding: 14px;
+    line-height: 1.9;
+    margin: 12px 0;
+}
+
+.pv-sheet .note {
+    line-height: 1.8;
+    margin: 12px 0;
+}
+
+/* Avoid breaking tables between pages */
+
+.pv-sheet tr {
+    page-break-inside: avoid;
+}
+
+.pv-sheet .card {
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* Responsive preview */
+
+@media screen and (max-width: 650px) {
+    .pv-sheet {
+        padding: 12px;
+    }
+
+    .pv-sheet .preview-fields-table td {
+        padding: 6px;
+        font-size: 11px;
+    }
+}
+
+/* Print layout */
+
+@media print {
+    .pv-sheet {
+        width: 100%;
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+
+    .pv-sheet table {
+        page-break-inside: auto;
+    }
+
+    .pv-sheet tr {
+        page-break-inside: avoid;
+    }
+
+    .pv-sheet .st {
+        page-break-after: avoid;
+    }
+}
+@media print {
+
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /* Hide the complete application */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Display only the formatted preview */
+  #pvOverlay,
+  #pvOverlay * {
+    visibility: visible !important;
+  }
+
+  #pvOverlay {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #fff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  #pvOverlay[hidden] {
+    display: none !important;
+  }
+
+  #pvOverlay .pv-box {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+
+  /* Hide preview toolbar */
+  #pvOverlay .pv-head {
+    display: none !important;
+  }
+
+  #pvOverlay .pv-body {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  #pvOverlay .pv-sheet {
+    box-sizing: border-box !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    min-height: 297mm !important;
+    padding: 12mm !important;
+    margin: 0 auto !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: white !important;
+  }
+
+  /* Match the sheet rendered in the preview modal for every selected tab. */
+  #pvOverlay .pv-body .view {
+    display: block !important;
+    animation: none !important;
+  }
+
+  /* Structured tables */
+  #pvOverlay table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed;
+  }
+
+  #pvOverlay th,
+  #pvOverlay td {
+    border: 1px solid #000 !important;
+    padding: 4px 6px !important;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+    vertical-align: top;
+  }
+
+  /* Remove all interactive controls */
+  #pvOverlay button,
+  #pvOverlay .noprint,
+  #pvOverlay .addrow,
+  #pvOverlay .save-bar,
+  #pvOverlay .rm {
+    display: none !important;
+  }
+
+  #pvOverlay tr {
+    page-break-inside: avoid !important;
+  }
+
+  #pvOverlay .st {
+    page-break-after: avoid !important;
+  }
+
+  #pvOverlay .appdoc {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}

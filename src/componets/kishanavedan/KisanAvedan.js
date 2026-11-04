@@ -1113,17 +1113,322 @@ export default function KisanAavedan() {
           if(target) markPrintTarget(target);
         }
         function printCurrent(){
-          markForPrint();
-          window.print();
+
+    let target;
+
+    if(cur === "filling"){
+
+        const fillingSection = root.querySelector(
+            '.view[data-v="filling"]'
+        );
+
+        target = fillingSection
+            ? fillingSection.querySelector(
+                '.view[data-v="' + subCur + '"]'
+              )
+            : null;
+
+    } else {
+
+        target = root.querySelector(
+            '.view[data-v="' + cur + '"]'
+        );
+
+    }
+
+    if(!target) return;
+
+    // Create a separate print container
+    let host = document.getElementById("kisan-print-host");
+
+    if(!host){
+        host = document.createElement("div");
+        host.id = "kisan-print-host";
+        document.body.appendChild(host);
+    }
+
+    host.innerHTML = "";
+
+    // Create formatted print sheet
+    const sheet = document.createElement("div");
+    sheet.className = "pv-sheet";
+
+    const clone = target.cloneNode(true);
+    clone.classList.add("on");
+
+    // Hide affidavit date if required
+    if(subCur === "affidavit" && cur === "filling"){
+        clone.querySelectorAll(".aff-preview-hide-date")
+            .forEach(el => el.remove());
+    }
+
+    // Copy current input values
+    const liveFields = target.querySelectorAll(
+        "input, select, textarea"
+    );
+
+    const cloneFields = clone.querySelectorAll(
+        "input, select, textarea"
+    );
+
+    for(let i = 0; i < liveFields.length; i++){
+
+        const cf = cloneFields[i];
+        const lf = liveFields[i];
+
+        if(!cf) continue;
+
+        if(cf.type === "checkbox" || cf.type === "radio"){
+            cf.checked = lf.checked;
+        } else {
+            cf.value = lf.value;
         }
-        const onBeforePrint = ()=>{ closePreview(); markForPrint(); };
+
+    }
+
+    // Convert fields into structured tables
+    formatPreviewFields(clone);
+
+    // Remove editing buttons and controls
+    clone.querySelectorAll(
+        "button, .noprint, .save-bar, .addrow, .rm"
+    ).forEach(el => el.remove());
+
+    sheet.appendChild(clone);
+    host.appendChild(sheet);
+
+    // Print cleanup
+    const cleanup = () => {
+        host.innerHTML = "";
+        window.removeEventListener("afterprint", cleanup);
+    };
+
+    window.addEventListener("afterprint", cleanup);
+
+    window.print();
+}function printCurrent(){
+
+    let target;
+
+    if(cur === "filling"){
+
+        const fillingSection = root.querySelector(
+            '.view[data-v="filling"]'
+        );
+
+        target = fillingSection
+            ? fillingSection.querySelector(
+                '.view[data-v="' + subCur + '"]'
+              )
+            : null;
+
+    } else {
+
+        target = root.querySelector(
+            '.view[data-v="' + cur + '"]'
+        );
+
+    }
+
+    if(!target) return;
+
+    // Create a separate print container
+    let host = document.getElementById("kisan-print-host");
+
+    if(!host){
+        host = document.createElement("div");
+        host.id = "kisan-print-host";
+        document.body.appendChild(host);
+    }
+
+    host.innerHTML = "";
+
+    // Create formatted print sheet
+    const sheet = document.createElement("div");
+    sheet.className = "pv-sheet";
+
+    const clone = target.cloneNode(true);
+    clone.classList.add("on");
+
+    // Hide affidavit date if required
+    if(subCur === "affidavit" && cur === "filling"){
+        clone.querySelectorAll(".aff-preview-hide-date")
+            .forEach(el => el.remove());
+    }
+
+    // Copy current input values
+    const liveFields = target.querySelectorAll(
+        "input, select, textarea"
+    );
+
+    const cloneFields = clone.querySelectorAll(
+        "input, select, textarea"
+    );
+
+    for(let i = 0; i < liveFields.length; i++){
+
+        const cf = cloneFields[i];
+        const lf = liveFields[i];
+
+        if(!cf) continue;
+
+        if(cf.type === "checkbox" || cf.type === "radio"){
+            cf.checked = lf.checked;
+        } else {
+            cf.value = lf.value;
+        }
+
+    }
+
+    // Convert fields into structured tables
+    formatPreviewFields(clone);
+
+    // Remove editing buttons and controls
+    clone.querySelectorAll(
+        "button, .noprint, .save-bar, .addrow, .rm"
+    ).forEach(el => el.remove());
+
+    sheet.appendChild(clone);
+    host.appendChild(sheet);
+
+    // Print cleanup
+    const cleanup = () => {
+        host.innerHTML = "";
+        window.removeEventListener("afterprint", cleanup);
+    };
+
+    window.addEventListener("afterprint", cleanup);
+
+    window.print();
+}
+       const onBeforePrint = () => {
+};
+
         window.addEventListener("beforeprint", onBeforePrint);
         window.addEventListener("afterprint", clearPrintMarks);
+        window.addEventListener("afterprint", closePreview);
         printCleanupRef.fn = ()=>{
           window.removeEventListener("beforeprint", onBeforePrint);
           window.removeEventListener("afterprint", clearPrintMarks);
         };
         const PV_TITLES = {application:"आवेदन पत्र", affidavit:"शपथ-पत्र", work:"व्यय विवरण", bill:"देयक प्रपत्र", register:"उपयोगकर्ता पंजीकरण"};
+        /* =========================================
+   FORMAT PRINT PREVIEW INTO TABLES
+========================================= */
+
+function formatPreviewFields(clone) {
+
+    const wrappers = clone.querySelectorAll(".grid2");
+
+    wrappers.forEach(wrapper => {
+
+        const fields = Array.from(wrapper.children).filter(el =>
+            el.classList.contains("field")
+        );
+
+        if (!fields.length) return;
+
+        const table = document.createElement("table");
+        table.className = "preview-fields-table";
+
+        const tbody = document.createElement("tbody");
+
+        for (let i = 0; i < fields.length; i += 2) {
+
+            const tr = document.createElement("tr");
+
+            [fields[i], fields[i + 1]].forEach(field => {
+
+                if (!field) return;
+
+                const label = field.querySelector("label");
+                const input = field.querySelector("input, select, textarea");
+
+                const labelCell = document.createElement("td");
+                labelCell.className = "preview-label";
+
+                labelCell.textContent = label
+                    ? label.textContent.trim()
+                    : "";
+
+                const valueCell = document.createElement("td");
+                valueCell.className = "preview-value";
+
+                const value = document.createElement("span");
+                value.className = "preview-value-text";
+
+                if (input) {
+
+                    if (input.tagName === "SELECT") {
+                        value.textContent =
+                            input.selectedOptions[0]?.textContent || "";
+                    } else {
+                        value.textContent = input.value || "—";
+                    }
+
+                } else {
+                    value.textContent = "—";
+                }
+
+                valueCell.appendChild(value);
+
+                tr.appendChild(labelCell);
+                tr.appendChild(valueCell);
+
+            });
+
+            tbody.appendChild(tr);
+        }
+
+        table.appendChild(tbody);
+
+        wrapper.replaceWith(table);
+
+    });
+
+    /* Convert remaining standalone form fields */
+
+    clone.querySelectorAll(".field").forEach(field => {
+
+        const label = field.querySelector("label");
+        const input = field.querySelector("input, select, textarea");
+
+        if (!input) return;
+
+        const table = document.createElement("table");
+        table.className = "preview-fields-table";
+
+        const tr = document.createElement("tr");
+
+        const labelCell = document.createElement("td");
+        labelCell.className = "preview-label";
+        labelCell.textContent = label
+            ? label.textContent.trim()
+            : "";
+
+        const valueCell = document.createElement("td");
+        valueCell.className = "preview-value";
+
+        const value = document.createElement("span");
+        value.className = "preview-value-text";
+
+        value.textContent = input.tagName === "SELECT"
+            ? (input.selectedOptions[0]?.textContent || "")
+            : (input.value || "—");
+
+        valueCell.appendChild(value);
+
+        tr.appendChild(labelCell);
+        tr.appendChild(valueCell);
+
+        table.appendChild(tr);
+
+        field.replaceWith(table);
+
+    });
+
+}
+
         function openPreview(){
           const overlay = document.getElementById("pvOverlay");
           const body = document.getElementById("pvBody");
@@ -1148,11 +1453,22 @@ export default function KisanAavedan() {
           const liveFields = target.querySelectorAll("input,select,textarea");
           const cloneFields = clone.querySelectorAll("input,select,textarea");
           for(let i=0; i<liveFields.length; i++){
-            const cf = cloneFields[i];
-            if(!cf) break;
-            if(cf.type === "checkbox" || cf.type === "radio") cf.checked = liveFields[i].checked;
-            else cf.value = liveFields[i].value;
-          }
+
+    const cf = cloneFields[i];
+
+    if(!cf) break;
+
+    if(cf.type === "checkbox" || cf.type === "radio") {
+        cf.checked = liveFields[i].checked;
+    } else {
+        cf.value = liveFields[i].value;
+    }
+
+}
+
+/* Convert application fields into structured tables */
+          formatPreviewFields(clone);
+
           sheet.appendChild(clone);
           body.appendChild(sheet);
           overlay.hidden = false;
@@ -1185,7 +1501,12 @@ export default function KisanAavedan() {
         const pvCloseEl = document.getElementById("pvClose");
         if (pvCloseEl) pvCloseEl.onclick = closePreview;
         const pvPrintEl = document.getElementById("pvPrint");
-        if (pvPrintEl) pvPrintEl.onclick = ()=>{ closePreview(); printCurrent(); };
+        if (pvPrintEl) {
+    pvPrintEl.onclick = () => {
+        // Print the already formatted preview, not the original form.
+        window.print();
+    };
+}
         const pvOverlayEl = document.getElementById("pvOverlay");
         if (pvOverlayEl) pvOverlayEl.addEventListener("click", e=>{ if(e.target === e.currentTarget) closePreview(); });
         document.addEventListener("keydown", e=>{ if(e.key === "Escape") closePreview(); });
